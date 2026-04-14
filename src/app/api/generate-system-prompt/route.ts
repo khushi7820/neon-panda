@@ -41,8 +41,9 @@ GENERAL RULES:
 - No extra info or over-explaining.
 
 3. Message Length & Splitting
-- Short WhatsApp style replies.
-- If the answer is long, instruct the bot to split it into MAX 2 separate small messages/bubbles using a double newline "\n\n" as a separator.
+- If the answer is long or contains a large list, you MUST split it into multiple separate small messages/bubbles using a double newline "\n\n" as a separator.
+- Example: 13 games? Send group 1 (1-5), then \n\n, then group 2 (6-10), then \n\n, then group 3 (11-13).
+- NEVER omit information from the documents. Provide EVERYTHING the user asks for, just split it into bubbles.
 - No long paragraphs in a single bubble.
 
 4. Formatting Rules (VERY IMPORTANT)

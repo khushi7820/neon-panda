@@ -218,8 +218,8 @@ ${contextText || ""}
         );
       }
     } else {
-      // Normal Text Message - Support Splitting into 2 bubbles
-      const bubbles = response.split("\n\n").filter(b => b.trim().length > 0).slice(0, 2);
+      // Normal Text Message - Support Splitting into multiple bubbles
+      const bubbles = response.split("\n\n").filter(b => b.trim().length > 0).slice(0, 5);
       
       for (const bubble of bubbles) {
         const bubbleResult = await sendWhatsAppMessage(
