@@ -43,11 +43,7 @@ async function detectLanguage(text: string): Promise<string> {
 
 /* ---------------- FORMAT RESPONSE ---------------- */
 function formatWhatsAppResponse(text: string): string {
-  return text
-    .replace(/[*_#~]/g, "") // Remove common markdown symbols
-    .replace(/\n{3,}/g, "\n\n") // Max double newline
-    .trim()
-    .slice(0, 900);
+  return text.replace(/\n{3,}/g, "\n\n").trim().slice(0, 900);
 }
 
 /* ---------------- MAIN AUTO RESPONDER ---------------- */
@@ -145,11 +141,16 @@ export async function generateAutoResponse(
     const contextText = matches.map((m) => m.chunk).join("\n\n");
 
     /* 6️⃣ SYSTEM PROMPT */
-    const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-CURRENT DAY: ${currentDay}
+RULES:
+- NEVER mention documents or sources
+- If info not available say politely:
+  "Mere paas is topic par abhi exact data available nahi hai."
+- Short, friendly, human replies
+- Light emojis 😊
+- Reply in ${language}
 
 CONTEXT:
 ${contextText || ""}
@@ -175,7 +176,7 @@ ${contextText || ""}
     response = formatWhatsAppResponse(response);
 
     /* 8️⃣ SEND RESPONSE (Text or Audio) */
-    let send: { success: boolean, error?: string } = { success: true };
+    let send;
     let finalResponseUrl = "";
 
     if (isVoiceRequest) {
@@ -185,7 +186,7 @@ ${contextText || ""}
 
         // Upload to Supabase Storage
         const fileName = `v_${Date.now()}.mp3`;
-        const { error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from("voice_replies")
           .upload(fileName, audioBuffer, {
             contentType: "audio/mpeg",
@@ -218,26 +219,13 @@ ${contextText || ""}
         );
       }
     } else {
-      // Normal Text Message - Support Splitting into multiple bubbles
-      const bubbles = response.split("\n\n").filter(b => b.trim().length > 0).slice(0, 5);
-      
-      for (const bubble of bubbles) {
-        const bubbleResult = await sendWhatsAppMessage(
-          fromNumber,
-          bubble,
-          auth_token,
-          origin
-        );
-        if (!bubbleResult.success) {
-          send = bubbleResult;
-          break;
-        }
-        
-        // Small delay between bubbles for natural feel
-        if (bubbles.length > 1 && bubbles.indexOf(bubble) === 0) {
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      }
+      // Normal Text Message
+      send = await sendWhatsAppMessage(
+        fromNumber,
+        response,
+        auth_token,
+        origin
+      );
     }
 
     if (!send.success) {
