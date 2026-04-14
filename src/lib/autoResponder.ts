@@ -182,7 +182,7 @@ ${contextText || ""}
 
     /* 8️⃣ SEND RESPONSE (Text or Audio) */
     const responseBubbles = response.split("---SPLIT---").map(b => b.trim()).filter(Boolean);
-    let lastSendResult = { success: false, error: "No messages sent" };
+    let lastSendResult: { success: boolean; error?: string } = { success: false, error: "No messages sent" };
     let finalResponseUrl = "";
 
     for (let i = 0; i < responseBubbles.length; i++) {
