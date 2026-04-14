@@ -141,16 +141,21 @@ export async function generateAutoResponse(
     const contextText = matches.map((m) => m.chunk).join("\n\n");
 
     /* 6️⃣ SYSTEM PROMPT */
+    const currentDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
+CURRENT DAY: Today is ${currentDay}. (STRICT RULE: Use this for daily offers. Never ask the user "aaj kaunsa day hai?".)
+
 RULES:
-- NEVER mention documents or sources
-- If info not available say politely:
-  "Mere paas is topic par abhi exact data available nahi hai."
-- Short, friendly, human replies
-- Light emojis 😊
-- Reply in ${language}
+- NEVER mention documents or sources.
+- Short, friendly, human replies only.
+- ❌ NO *stars* for bold.
+- ❌ NO # headings.
+- ✅ Use • for clean bullets.
+- Split multi-bubble messages using "---SPLIT---" marker if response is long.
+- Reply in ${language}.
 
 CONTEXT:
 ${contextText || ""}
@@ -176,60 +181,73 @@ ${contextText || ""}
     response = formatWhatsAppResponse(response);
 
     /* 8️⃣ SEND RESPONSE (Text or Audio) */
-    let send;
+    const responseBubbles = response.split("---SPLIT---").map(b => b.trim()).filter(Boolean);
+    let lastSendResult = { success: false, error: "No messages sent" };
     let finalResponseUrl = "";
 
-    if (isVoiceRequest) {
-      try {
-        // Convert to Speech
-        const audioBuffer = await textToSpeech(response, language);
+    for (let i = 0; i < responseBubbles.length; i++) {
+      const bubble = responseBubbles[i];
+      
+      if (isVoiceRequest) {
+        try {
+          // Convert to Speech
+          const audioBuffer = await textToSpeech(bubble, language);
 
-        // Upload to Supabase Storage
-        const fileName = `v_${Date.now()}.mp3`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("voice_replies")
-          .upload(fileName, audioBuffer, {
-            contentType: "audio/mpeg",
-            upsert: true,
-          });
+          // Upload to Supabase Storage
+          const fileName = `v_${Date.now()}_${i}.mp3`;
+          const { error: uploadError } = await supabase.storage
+            .from("voice_replies")
+            .upload(fileName, audioBuffer, {
+              contentType: "audio/mpeg",
+              upsert: true,
+            });
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        // Get Public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from("voice_replies")
-          .getPublicUrl(fileName);
+          // Get Public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from("voice_replies")
+            .getPublicUrl(fileName);
 
-        finalResponseUrl = publicUrl;
+          finalResponseUrl = publicUrl;
 
-        // Send Audio
-        send = await sendWhatsAppAudio(
+          // Send Audio
+          const send = await sendWhatsAppAudio(
+            fromNumber,
+            finalResponseUrl,
+            auth_token,
+            origin
+          );
+          lastSendResult = send;
+        } catch (audioErr) {
+          console.error("Audio processing failed, falling back to text:", audioErr);
+          const send = await sendWhatsAppMessage(
+            fromNumber,
+            bubble,
+            auth_token,
+            origin
+          );
+          lastSendResult = send;
+        }
+      } else {
+        // Normal Text Message
+        const send = await sendWhatsAppMessage(
           fromNumber,
-          finalResponseUrl,
+          bubble,
           auth_token,
           origin
         );
-      } catch (audioErr) {
-        console.error("Audio processing failed, falling back to text:", audioErr);
-        send = await sendWhatsAppMessage(
-          fromNumber,
-          response,
-          auth_token,
-          origin
-        );
+        lastSendResult = send;
       }
-    } else {
-      // Normal Text Message
-      send = await sendWhatsAppMessage(
-        fromNumber,
-        response,
-        auth_token,
-        origin
-      );
+
+      // Small delay between bubbles to preserve order
+      if (responseBubbles.length > 1 && i < responseBubbles.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
     }
 
-    if (!send.success) {
-      return { success: false, error: send.error };
+    if (!lastSendResult.success) {
+      return { success: false, error: lastSendResult.error };
     }
 
     /* 9️⃣ SAVE RESPONSE */
