@@ -135,7 +135,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      8
+      7
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
@@ -151,8 +151,7 @@ USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
 ⚠️ GREETING RULE (ABSOLUTE):
 - If the user sends a simple greeting like "hey", "hi", "hello", "hiii" → You MUST ONLY reply with: "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?"
-- Do NOT mention the day, do NOT mention offers, do NOT mention anything else for a greeting.
-- Reply ONLY with that exact sentence.
+- Do NOT mention the day or offers in the greeting.
 
 ⚠️ DAY RULE:
 TODAY IS: ${currentDay}.
@@ -160,14 +159,13 @@ TODAY IS: ${currentDay}.
 - If user asks for specific day (e.g. Sunday), give that day's info directly.
 - ONLY correct the day if user misidentifies today's date.
 
-RULES (STRICT):
-- ❌ NEVER use * (stars) for bolding. Use plain text only.
-- ❌ NEVER use # headings.
+RULES:
+- ❌ NEVER use * (stars). Use plain text.
 - ✅ Use plenty of relevant emojis 🐼🎳🍔🕹️.
 - 💬 Bubbles: Use "---SPLIT---" (Max 2–3 bubbles).
 - 📜 Lists: Max 4–5 items per bubble.
 - 🌐 Language: Mirror same language (Hinglish/Hindi/English).
-- ⚠️ CATEGORY CHECK: Do NOT mix categories. Drinks vs Starters.
+- ⚠️ CATEGORY CHECK: Do NOT mix categories (Drinks vs Starters).
 
 CONTEXT:
 ${contextText || ""}
