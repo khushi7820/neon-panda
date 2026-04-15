@@ -170,7 +170,7 @@ ${contextText || ""}
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
-      temperature: 0.3,
+      temperature: 0.0,
       max_tokens: 1024,
       messages: [
         { role: "system", content: systemPrompt },
