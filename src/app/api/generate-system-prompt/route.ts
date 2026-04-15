@@ -87,9 +87,8 @@ NEON PANDA WEEKLY OFFERS:
 - Sunday: Group deals
 
 GREETING RULE:
-- For "hey/hi/hello", the response must be short (max 2 lines).
-- Include 🐼 emoji.
-- Ask which games they want to know about and mention food is also available.
+- For "hey/hi/hello", the response MUST be: "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?"
+- Keep it max 2 lines.
 
 Generate ONLY the system prompt text for the AI. No explanation.
                     `.trim(),
