@@ -152,24 +152,32 @@ export async function generateAutoResponse(
     const contextText = matches.map((m) => m.chunk).join("\n\n");
 
     /* 6️⃣ SYSTEM PROMPT */
-    const currentDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+    const currentDay = new Intl.DateTimeFormat('en-US', { 
+      weekday: 'long',
+      timeZone: 'Asia/Kolkata' 
+    }).format(new Date());
     const isReturningUser = history.length > 0;
 
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-INTERNAL METADATA:
+INTERNAL METADATA (ABSOLUTE TRUTH):
 - TODAY IS: ${currentDay}.
 - USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
+⚠️ DAY RULE:
+- NEVER say "Friday" or "Monday" unless it is actually that day.
+- Today is strictly ${currentDay}.
+- Use this day for ALL offer calculations.
+
 ⚠️ ORDER TRACKING:
-- Pay close attention to items the user says they want to buy, order, or select in the history.
-- When asked for "mera order" or "order list", ONLY list the specific items the user has chosen in this conversation. Do NOT list the whole menu.
+- Track items user selects in history.
+- "Mera order" = only selected items.
 
 ⚠️ RULES:
-- Ans only what's asked. No preambles.
+- Ans ONLY what's asked. No preambles like "Aaj ka din...".
 - Short points. No stars (*). No headings (#).
-- User 3 bubbles (---SPLIT---).
+- Split bubbles (---SPLIT---).
 
 CONTEXT:
 ${contextText || ""}
