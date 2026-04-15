@@ -126,15 +126,13 @@ export async function generateAutoResponse(
         content: m.content_text as string,
       }));
 
-    const userText = messageText || "";
     const normalizedText = userText.toLowerCase().trim();
     const isGreeting = /^(hi|hello|hey|hiii|hey|namaste|hola)$/i.test(normalizedText);
 
     if (isGreeting) {
       console.log("👋 Simple greeting detected, sending standard reply (Saving Tokens)");
       const greetingMsg = "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?";
-      const auth_token = process.env.WHATSAPP_AUTH_TOKEN;
-      const origin = process.env.WHATSAPP_ORIGIN;
+      // auth_token and origin are already defined above
       await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token, origin);
       return { success: true };
     }
