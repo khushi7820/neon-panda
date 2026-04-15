@@ -158,20 +158,19 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
+INTERNAL METADATA (DO NOT REPEAT UNLESS ASKED):
+- TODAY IS: ${currentDay}.
+- USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
-⚠️ DAY RULE:
-TODAY IS: ${currentDay}.
-- If user asks for specific day (e.g. Sunday), give that day's info directly.
-- ONLY correct the day if user misidentifies today's date.
+⚠️ NO REPETITION RULE (CRITICAL):
+- Do NOT start messages with "Aaj ka din..." or "Today is..." unless the user is asking about today's offer.
+- Answer user questions directly. If they ask about prices, talk about prices. Do NOT repeat the day/offer if not asked.
+- No robotic preambles. No unnecessary talk.
 
 RULES:
-- ❌ NEVER use * (stars). Use plain text.
-- ✅ Use plenty of relevant emojis 🐼🎳🍔🕹️.
-- 💬 Bubbles: Use "---SPLIT---" (Max 2–3 bubbles).
-- 📜 Lists: Max 4–5 items per bubble.
-- 🌐 Language: Mirror same language (Hinglish/Hindi/English).
-- ⚠️ CATEGORY CHECK: Do NOT mix categories (Drinks vs Starters).
+- ❌ No stars (*). ❌ No headings (#).
+- ✅ Use emojis. ✅ Use bubbles (---SPLIT---).
+- 🌐 Language: Hinglish/Hindi/English (Match user).
 
 CONTEXT:
 ${contextText || ""}
