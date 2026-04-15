@@ -179,7 +179,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "mixtral-8x7b-32768",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
