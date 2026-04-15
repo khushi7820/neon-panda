@@ -174,10 +174,6 @@ CONTEXT:
 ${contextText || ""}
 `;
 
-CONTEXT:
-${contextText || ""}
-`;
-
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
       model: "qwen/qwen3-32b",
