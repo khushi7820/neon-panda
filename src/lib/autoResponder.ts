@@ -126,7 +126,8 @@ export async function generateAutoResponse(
         content: m.content_text as string,
       }));
 
-    const normalizedText = text.toLowerCase().trim();
+    const userText = messageText || "";
+    const normalizedText = userText.toLowerCase().trim();
     const isGreeting = /^(hi|hello|hey|hiii|hey|namaste|hola)$/i.test(normalizedText);
 
     if (isGreeting) {
@@ -139,7 +140,7 @@ export async function generateAutoResponse(
     }
 
     /* 5️⃣ RAG */
-    const embedding = await embedText(text);
+    const embedding = await embedText(userText);
     if (!embedding) {
       return { success: false, error: "Embedding failed" };
     }
