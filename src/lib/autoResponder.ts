@@ -169,7 +169,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "mixtral-8x7b-32768",
+      model: "qwen/qwen3-32b",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
