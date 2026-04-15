@@ -43,7 +43,7 @@ async function detectLanguage(text: string): Promise<string> {
 
 /* ---------------- FORMAT RESPONSE ---------------- */
 function formatWhatsAppResponse(text: string): string {
-  return text.replace(/\n{3,}/g, "\n\n").trim().slice(0, 900);
+  return text.replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000);
 }
 
 /* ---------------- MAIN AUTO RESPONDER ---------------- */
@@ -135,7 +135,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      2
+      5
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
@@ -165,7 +165,7 @@ ${contextText || ""}
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       temperature: 0.3,
-      max_tokens: 500,
+      max_tokens: 1024,
       messages: [
         { role: "system", content: systemPrompt },
         ...history.slice(-3),
