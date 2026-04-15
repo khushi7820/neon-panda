@@ -147,7 +147,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      6
+      7
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
@@ -180,7 +180,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
