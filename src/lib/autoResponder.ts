@@ -184,6 +184,9 @@ ${contextText || ""}
       return { success: false, error: "Empty AI response" };
     }
 
+    // Strip out internal CoT reasoning blocks
+    response = response.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
     response = formatWhatsAppResponse(response);
 
     /* 8️⃣ SEND RESPONSE (Text or Audio) */
