@@ -146,7 +146,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      7
+      6
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
@@ -158,19 +158,14 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-INTERNAL METADATA (DO NOT REPEAT UNLESS ASKED):
+INTERNAL METADATA:
 - TODAY IS: ${currentDay}.
 - USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
-⚠️ NO REPETITION RULE (CRITICAL):
-- Do NOT start messages with "Aaj ka din..." or "Today is..." unless the user is asking about today's offer.
-- Answer user questions directly. If they ask about prices, talk about prices. Do NOT repeat the day/offer if not asked.
-- No robotic preambles. No unnecessary talk.
-
-RULES:
-- ❌ No stars (*). ❌ No headings (#).
-- ✅ Use emojis. ✅ Use bubbles (---SPLIT---).
-- 🌐 Language: Hinglish/Hindi/English (Match user).
+⚠️ RULES:
+- Ans only what's asked. No preambles.
+- Short points. No stars (*). No headings (#).
+- User 3 bubbles (---SPLIT---).
 
 CONTEXT:
 ${contextText || ""}
@@ -178,7 +173,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
