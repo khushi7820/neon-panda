@@ -151,31 +151,39 @@ export async function generateAutoResponse(
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
 
-    /* 6️⃣ SYSTEM PROMPT */
+    /* 6️⃣ SYSTEM PROMPT & DAY LOGIC */
     const currentDay = new Intl.DateTimeFormat('en-US', { 
       weekday: 'long',
       timeZone: 'Asia/Kolkata' 
     }).format(new Date());
+
+    console.log(`[DEBUG] Bot Processing. Day: ${currentDay}`);
+
+    // Hardcoded logic to force the right offer for the day
+    const dayOfferMap: Record<string, string> = {
+      'Monday': 'Panda Kickstart: Arcade @ ₹199 🕹️',
+      'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🥽',
+      'Wednesday': 'Midweek Madness: Bowling Session @ ₹249 🎳',
+      'Thursday': 'Throwdown Thursday: Multiplayer Games @ ₹199 🎮',
+      'Friday': 'Panda Face-Off: Live Game Night @ ₹199 🏁',
+      'Saturday': 'Super Saturday: Check combo pricing! 🥳',
+      'Sunday': 'Family (₹999) | Friends (₹1,499) | Celebration (₹1,999) 📅'
+    };
+
+    const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
+
     const isReturningUser = history.length > 0;
 
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-INTERNAL METADATA (ABSOLUTE TRUTH):
+⚠️ FIXED TRUTH (SOCIALLY MANDATED):
 - TODAY IS: ${currentDay}.
-- USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
-
-⚠️ DAY RULE:
-- NEVER say "Friday" or "Monday" unless it is actually that day.
-- Today is strictly ${currentDay}.
-- Use this day for ALL offer calculations.
-
-⚠️ ORDER TRACKING:
-- Track items user selects in history.
-- "Mera order" = only selected items.
+- TODAY'S EXCLUSIVE OFFER: ${todaysOffer}.
+- If the user asks for "aaj ka offer", you MUST give ${todaysOffer}.
 
 ⚠️ RULES:
-- Ans ONLY what's asked. No preambles like "Aaj ka din...".
+- Ans ONLY what's asked. No "Aaj ka din..." robotic preambles.
 - Short points. No stars (*). No headings (#).
 - Split bubbles (---SPLIT---).
 
