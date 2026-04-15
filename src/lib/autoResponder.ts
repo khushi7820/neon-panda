@@ -135,7 +135,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      6
+      8
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
