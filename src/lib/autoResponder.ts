@@ -142,17 +142,21 @@ export async function generateAutoResponse(
 
     /* 6️⃣ SYSTEM PROMPT */
     const currentDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+    const isReturningUser = history.length > 0;
 
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
+USER STATUS: ${isReturningUser ? "RETURNING USER (This user has chatted with you before)" : "NEW USER (First time chatting)"}
+
 ⚠️ DAY RULE (CRITICAL - ALWAYS FOLLOW):
 TODAY IS: ${currentDay}. This is the real system date. LOCKED.
-- If user asks about a specific day (e.g., "Sunday offer?", "What is on Monday?"): Provide the info for THAT day accurately. DO NOT say "Today is Sunday". Just say "Sunday's offer is...".
-- If user asks about "today" or "offers" without a day: Provide ${currentDay}'s offer.
-- If user explicitly says "Today is [Wrong Day]" (e.g., "aaj Monday hai"): Politely correct them with "Nahi, aaj ${currentDay} hai 😊" and then give ${currentDay}'s offer.
-- If user sends greetings like "hey", "hi", "hello": Reply with the normal Welcome Greeting ONLY. Do NOT mention the current day or any offers.
-- NEVER mention the day in responses about Menu or Games unless specifically asked.
+- Only mention the day when user asks about offers, day, or schedule.
+- If user asks about offers/day and claims a DIFFERENT day → say "Nahi, aaj ${currentDay} hai 😊" then give ${currentDay}'s offer.
+- If user sends greetings like "hey", "hi", "hello":
+    - If NEW USER → reply with the welcome message ONLY.
+    - If RETURNING USER → reply with "Welcome back to Neon Panda 🐼! Would you like to **Continue** our previous chat, **Start Fresh**, or see **More** options?"
+- NEVER say the day or give an offer correction for a simple greeting.
 
 RULES:
 - NEVER mention documents or sources.
@@ -161,7 +165,7 @@ RULES:
 - ❌ NO # headings.
 - ✅ Use • for clean bullets.
 - Split multi-bubble messages using "---SPLIT---" marker if response is long.
-- Reply in the EXACT same language as the user (${language}).
+- Reply in ${language}.
 
 CONTEXT:
 ${contextText || ""}
