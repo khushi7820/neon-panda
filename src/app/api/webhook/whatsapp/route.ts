@@ -13,6 +13,20 @@ export async function POST(req: Request) {
     }
 
     /* --------------------------------------------------
+     * 0️⃣ DEDUPLICATION CHECK — Ignore already-processed messages
+     * -------------------------------------------------- */
+    const { data: existing } = await supabase
+      .from("whatsapp_messages")
+      .select("message_id")
+      .eq("message_id", payload.messageId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      console.log("⚠️ Duplicate webhook ignored:", payload.messageId);
+      return NextResponse.json({ success: true, duplicate: true });
+    }
+
+    /* --------------------------------------------------
      * 1️⃣ SAVE RAW MESSAGE (SAFE)
      * -------------------------------------------------- */
     await supabase.from("whatsapp_messages").insert([
