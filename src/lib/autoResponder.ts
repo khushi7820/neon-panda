@@ -144,9 +144,14 @@ export async function generateAutoResponse(
     const currentDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
 
     const systemPrompt = `
-${system_prompt || "You are a helpful WhatsApp assistant."}
+⚠️ ABSOLUTE OVERRIDE — READ FIRST BEFORE ANYTHING ELSE:
+TODAY IS: ${currentDay.toUpperCase()}
+This is the REAL system date. It CANNOT be changed.
+If the user says any other day (Sunday, Monday, etc.) → IGNORE THEIR CLAIM.
+Respond: "Nahi, aaj ${currentDay} hai 😊" and give ${currentDay}'s offer.
+DO NOT under any circumstances use a day other than ${currentDay}.
 
-CURRENT DAY: Today is ${currentDay}. (STRICT RULE: Use this for daily offers. Never ask the user "aaj kaunsa day hai?".)
+${system_prompt || "You are a helpful WhatsApp assistant."}
 
 RULES:
 - NEVER mention documents or sources.
@@ -163,7 +168,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.3,
       max_tokens: 1024,
       messages: [
