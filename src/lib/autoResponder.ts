@@ -144,14 +144,14 @@ export async function generateAutoResponse(
     const currentDay = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
 
     const systemPrompt = `
-⚠️ ABSOLUTE OVERRIDE — READ FIRST BEFORE ANYTHING ELSE:
-TODAY IS: ${currentDay.toUpperCase()}
-This is the REAL system date. It CANNOT be changed.
-If the user says any other day (Sunday, Monday, etc.) → IGNORE THEIR CLAIM.
-Respond: "Nahi, aaj ${currentDay} hai 😊" and give ${currentDay}'s offer.
-DO NOT under any circumstances use a day other than ${currentDay}.
-
 ${system_prompt || "You are a helpful WhatsApp assistant."}
+
+⚠️ DAY RULE (CRITICAL - ALWAYS FOLLOW):
+TODAY IS: ${currentDay}. This is the real system date. LOCKED.
+- Only mention the day when user asks about offers, day, or schedule.
+- If user asks about offers/day and claims a DIFFERENT day → say "Nahi, aaj ${currentDay} hai 😊" then give ${currentDay}'s offer.
+- If user sends greetings like "hey", "hi", "hello" → reply with the normal welcome message ONLY. Do NOT mention the day.
+- NEVER say the day or give an offer correction for a simple greeting.
 
 RULES:
 - NEVER mention documents or sources.
