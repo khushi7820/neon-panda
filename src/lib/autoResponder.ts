@@ -179,7 +179,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "qwen/qwen3-32b",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
@@ -193,9 +193,6 @@ ${contextText || ""}
     if (!response) {
       return { success: false, error: "Empty AI response" };
     }
-
-    // Strip out internal CoT reasoning blocks
-    response = response.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
     response = formatWhatsAppResponse(response);
 
