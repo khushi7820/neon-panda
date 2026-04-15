@@ -133,7 +133,7 @@ export async function generateAutoResponse(
       console.log("👋 Simple greeting detected, sending standard reply (Saving Tokens)");
       const greetingMsg = "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?";
       // auth_token and origin are already defined above
-      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token, origin);
+      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
       return { success: true };
     }
 
@@ -231,8 +231,8 @@ ${contextText || ""}
           const send = await sendWhatsAppAudio(
             fromNumber,
             finalResponseUrl,
-            auth_token,
-            origin
+            auth_token!,
+            origin!
           );
           lastSendResult = send;
         } catch (audioErr) {
@@ -240,8 +240,8 @@ ${contextText || ""}
           const send = await sendWhatsAppMessage(
             fromNumber,
             bubble,
-            auth_token,
-            origin
+            auth_token!,
+            origin!
           );
           lastSendResult = send;
         }
@@ -250,8 +250,8 @@ ${contextText || ""}
         const send = await sendWhatsAppMessage(
           fromNumber,
           bubble,
-          auth_token,
-          origin
+          auth_token!,
+          origin!
         );
         lastSendResult = send;
       }
