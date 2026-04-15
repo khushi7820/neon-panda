@@ -135,7 +135,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      7
+      6
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
@@ -149,29 +149,19 @@ ${system_prompt || "You are a helpful WhatsApp assistant."}
 
 USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
-⚠️ DAY RULE (CRITICAL - ALWAYS FOLLOW):
-TODAY IS: ${currentDay}. This is the real system date. LOCKED.
-- AI ko current day internally pata hona chahiye.
-- User ko kabhi mat pucho: "aaj kaunsa day hai?"
-- Agar user day bole → override karo.
-- Only mention the day when user asks about offers, day, or schedule.
-- If user asks about offers/day and claims a DIFFERENT day → say "Nahi, aaj ${currentDay} hai 😊" then give ${currentDay}'s offer.
-- If user sends greetings like "hey", "hi", "hello" → reply with the standard welcome message ONLY. Do NOT mention the day.
-- NEVER say the day or give an offer correction for a simple greeting.
+⚠️ DAY RULE (CRITICAL):
+TODAY IS: ${currentDay}.
+- Do NOT start every message with "Today is...".
+- If user asks for specific day (e.g. Sunday), give that day's info directly.
+- ONLY correct the day if user misidentifies today's date.
 
 RULES (STRICT PRIORITY):
-- ❌ NEVER use * (stars) for bolding. If you use a *, you have FAILED.
-- ❌ Do NOT start messages with "Aaj [Day] hai" unless asked or correcting.
-- IF user asks for a specific day's offer → provide that directly. Do NOT talk about today.
-- ONLY correct the day if the user misidentifies today's date.
+- ❌ NEVER use * (stars) for bolding. Use plain text only.
 - ❌ NEVER use # headings.
-- ✅ Use plenty of relevant emojis for a premium feel 🐼🎳🍔🕹️.
-- Short, friendly, human-like, clear replies only.
-- ✅ Use • for clean bullets.
-- 💬 Split multi-bubble messages using "---SPLIT---" marker (Max 2–3 bubbles).
-- 📜 List Handling: Max 4–5 items per message.
-- 🌐 LANGUAGE: Mirror same language (Hinglish, Hindi, English).
-- Reply in ${language}.
+- ✅ Use plenty of relevant emojis 🐼🎳🍔🕹️.
+- 💬 Bubbles: Use "---SPLIT---" (Max 2–3 bubbles).
+- 📜 Lists: Max 4–5 items per bubble.
+- ⚠️ CATEGORY CHECK: Do NOT mix categories. Drinks (liquids) and Starters (kebabs, snacks) must be correctly labeled.
 
 CONTEXT:
 ${contextText || ""}
@@ -179,7 +169,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
