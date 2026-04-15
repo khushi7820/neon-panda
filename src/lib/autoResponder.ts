@@ -126,6 +126,18 @@ export async function generateAutoResponse(
         content: m.content_text as string,
       }));
 
+    const normalizedText = userText.toLowerCase().trim();
+    const isGreeting = /^(hi|hello|hey|hiii|hey|namaste|hola)$/i.test(normalizedText);
+
+    if (isGreeting) {
+      console.log("👋 Simple greeting detected, sending standard reply (Saving Tokens)");
+      const greetingMsg = "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?";
+      const auth_token = process.env.WHATSAPP_AUTH_TOKEN;
+      const origin = process.env.WHATSAPP_ORIGIN;
+      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token, origin);
+      return { success: true };
+    }
+
     /* 5️⃣ RAG */
     const embedding = await embedText(userText);
     if (!embedding) {
@@ -135,7 +147,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      7
+      6
     );
 
     const contextText = matches.map((m) => m.chunk).join("\n\n");
@@ -149,13 +161,8 @@ ${system_prompt || "You are a helpful WhatsApp assistant."}
 
 USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
-⚠️ GREETING RULE (ABSOLUTE):
-- If the user sends a simple greeting like "hey", "hi", "hello", "hiii" → You MUST ONLY reply with: "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?"
-- Do NOT mention the day or offers in the greeting.
-
 ⚠️ DAY RULE:
 TODAY IS: ${currentDay}.
-- Do NOT start every message with "Today is...".
 - If user asks for specific day (e.g. Sunday), give that day's info directly.
 - ONLY correct the day if user misidentifies today's date.
 
@@ -173,7 +180,7 @@ ${contextText || ""}
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       temperature: 0.1,
       max_tokens: 1024,
       messages: [
