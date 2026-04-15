@@ -162,6 +162,10 @@ INTERNAL METADATA:
 - TODAY IS: ${currentDay}.
 - USER STATUS: ${isReturningUser ? "RETURNING USER" : "NEW USER"}
 
+⚠️ ORDER TRACKING:
+- Pay close attention to items the user says they want to buy, order, or select in the history.
+- When asked for "mera order" or "order list", ONLY list the specific items the user has chosen in this conversation. Do NOT list the whole menu.
+
 ⚠️ RULES:
 - Ans only what's asked. No preambles.
 - Short points. No stars (*). No headings (#).
@@ -178,7 +182,7 @@ ${contextText || ""}
       max_tokens: 1024,
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-3),
+        ...history.slice(-12),
         { role: "user", content: userText },
       ],
     });
