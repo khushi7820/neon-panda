@@ -192,6 +192,8 @@ ${contextText || ""}
       return { success: false, error: "Empty AI response" };
     }
 
+    // FINAL FORMATTING FILTER (STRICT NO STARS)
+    response = response.replace(/\*/g, ""); 
     response = formatWhatsAppResponse(response);
 
     /* 8️⃣ SEND RESPONSE (Text or Audio) */
