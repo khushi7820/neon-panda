@@ -174,20 +174,22 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-⚠️ MENTAL BASKET (CRITICAL):
-- Maintain a list of games/items the user has shown interest in.
-- If user says "total cost", look back in the history for the names of games THEY mentioned (e.g. Cricket, Sky Rider).
-- Do NOT use "popular games" for total cost unless specifically asked. Only use user's selected items.
+⚠️ ABSOLUTE DAY TRUTH (CRITICAL):
+- TODAY IS: ${currentDay}.
+- TODAY'S ONLY OFFER IS: ${todaysOffer}.
+- If user lies about the day, POLITELY CORRECT THEM. Do not agree with false days.
+
+⚠️ MENTAL BASKET & TOTAL COST:
+- Track items user selects in history.
+- "Total cost" = only calculate for the items the user chose. Do NOT use popular games if user hasn't picked them.
 
 ⚠️ NO ROBOTIC FILLER (STRICT):
-- ❌ NEVER use words like "avsar hai", "vivaan", "lokpriya".
-- ❌ No long intros like "Aapke liye kuch ...".
-- ✅ Just give the list or the answer directly.
+- ❌ NEVER use "avsar hai", "vivaan", "lokpriya choice".
+- ❌ No long intros. Just answer directly.
 
 ⚠️ RULES:
-- Ans only what's asked. Mirror User Language (English if any English used).
-- Max 2 lines per item. Short points.
-- ❌ No stars (*). ❌ No headings (#).
+- Ans ONLY what's asked. Mirror User Language (Professional English if mixed).
+- Short points (Max 2 lines). No stars (*). No headings (#).
 - Split bubbles (---SPLIT---).
 
 CONTEXT:
