@@ -169,105 +169,38 @@ export async function generateAutoResponse(
 
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
 
-    const cleanedText = userText.toLowerCase();
-    
-    // Check for Menu/Food (but NOT if games are mentioned)
-    const isMenuQuery = /\b(menu|food|khana|pakwan|dikhao)\b/i.test(cleanedText) && 
-                       !/game|activity|play|trampoline|bowling|khel/i.test(cleanedText);
-
-    // Check for Games specifically
-    const isGamesQuery = /game|activity|khel|trampoline|bowling/i.test(cleanedText) || 
-                        (/\b(list|show|available)\b/i.test(cleanedText) && /game|activity|khel/i.test(cleanedText));
-
-    if (isGamesQuery) {
-      const gamesMsg = `Neon Panda mein kuch popular games hain:
-1. TRAMPOLINE: Bounce, Jump, Play
-2. BOWLING: Roll, Strike, Celebrate
-3. KIDS PLAY: Safe Play, Explore, NEON-STOP FUN
-4. HYPER GRID: Step Fast, Think Faster, Win Smarter
-5. PANDA CLIMB: Grip, Climb, Conquer
-6. CRICKET: Play, Practice, Compete
-7. ROPE COURSE: Climb, Balance, Conquer
-8. SKY RIDER: Ride, Glide, Feel the Rush
-9. GRAVITY GLIDE: Slide, Soar, Feel the Drop
-10. ARCADE GAMES: Play, Compete, Win
-11. VR GAMES: Enter, Explore, Experience
-12. SHOOTING: Play, Compete, Win
-
-Aapke liye koi vishesh game hai? 🎮`;
-      await sendWhatsAppMessage(fromNumber, gamesMsg, auth_token!, origin!);
-      return { success: true };
-    }
-
-    if (isMenuQuery) {
-      const menuMsg = "Aap humara full food menu yahan check kar sakte hain: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview ---SPLIT--- Iske alawa, kya aap kuch book karna chahenge?";
-      await sendWhatsAppMessage(fromNumber, menuMsg, auth_token!, origin!);
-      return { success: true };
-    }
+    const isMenuQuery = /\b(menu|food|khana|available|batao|dikhao|list|give|show)\b/i.test(userText) && !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
 
     const systemPrompt = `
-${system_prompt || "You are a helpful WhatsApp assistant for Neon Panda."}
+${system_prompt || "You are a helpful WhatsApp assistant."}
 
-🎯 SYSTEM BEHAVIOR:
-- Style: Hinglish (Hindi-English mix).
-- Tone: Short WhatsApp-style replies, friendly and helpful.
-- ⚠️ NEVER ask the user "what day is it today?". Use the provided Day Truth instead.
+⚠️ NO MENU LISTS (STRICT):
+- ❌ NEVER list food dishes or the menu in text. NO walls of text.
+- ✅ ALWAYS give PDF LINK: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
 
-⚠️ ABSOLUTE DAY TRUTH (AUTO-APPLIED):
-- TODAY IS: ${currentDay}. 
-- TODAY'S OFFER: ${todaysOffer}.
-- If user lies about day: "Nahi, aaj toh ${currentDay} hai 😊"
+⚠️ ORDER SUMMARY:
+- 1. First bubble: Intro + Total.
+- 2. Use "---SPLIT---"
+- 3. Second bubble: Itemized List with Prices (Only for PICKED items).
+- 💡 PROACTIVE COMBO: If bill > ₹1000, suggest Silver/Gold combos.
 
-🎯 4-STEP BOOKING FLOW:
-- Step 1: Decide Activity (Auto-apply today's offer).
-- Step 2: Share Details (Number of players + Preferred time).
-- Step 3: Check & Confirm Slot (Suggest alternatives if slot full).
-- Step 4: Confirm Booking (Ask for Name + Contact number).
+⚠️ ABSOLUTE DAY TRUTH (IGNORE HISTORY):
+- TODAY IS: ${currentDay}. Correct user if wrong.
 
-⚠️ STANDARD GAMES LIST (USE THIS EXACTLY):
-Neon Panda mein kuch popular games hain:
-1. TRAMPOLINE: Bounce, Jump, Play
-2. BOWLING: Roll, Strike, Celebrate
-3. KIDS PLAY: Safe Play, Explore, NEON-STOP FUN
-4. HYPER GRID: Step Fast, Think Faster, Win Smarter
-5. PANDA CLIMB: Grip, Climb, Conquer
-6. CRICKET: Play, Practice, Compete
-7. ROPE COURSE: Climb, Balance, Conquer
-8. SKY RIDER: Ride, Glide, Feel the Rush
-9. GRAVITY GLIDE: Slide, Soar, Feel the Drop
-10. ARCADE GAMES: Play, Compete, Win
-11. VR GAMES: Enter, Explore, Experience
-12. SHOOTING: Play, Compete, Win
-Aapke liye koi vishesh game hai? 🎮
+⚠️ INTERNAL ORDER TRACKING:
+- Track selected items. ❌ NEVER say "Mental Basket" or "Internal" to user.
+- 💡 CONTEXTUAL OFFER: If user asks for offer on "this" (Food) but today's offer is for "Games", say: "Food par koi offer nahi hai, par Games ke liye aaj ${todaysOffer} hai!"
 
-⚠️ PRICE RULES:
-- ❌ NEVER add individual prices to the general game list above.
-- ✅ ONLY tell individual prices if the user specifically asks (e.g., "Bowling kitne ka hai?").
-- AUTHORIZED PACKAGES: Silver (₹499) | Gold (₹699) | Diamond (₹999).
+⚠️ OK/HMM LOGIC:
+- Casual OK -> Ask "Aur kuch book karna?"
+- Order OK -> Give Booking Steps.
 
-⚠️ FOOD MENU ONLY:
-- ✅ Use this link ONLY for Food/Menu queries: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
-- ❌ NEVER use this link for Game info or price info.
+⚠️ BANNED WORDS/TONE: ❌ kheti, avsar, vivaan, samagri. No rude tone.
 
-⚠️ CLEAN FORMAT:
-- No long descriptions (except the taglines provided above).
-- Use "---SPLIT---" to separate bubbles.
-
-💬 COMMON QUERIES (SHORT ANSWERS):
-- Walk-in allowed? → Yes, slots subject to availability.
-- Group booking minimum? → 4+ for best deals.
-- Offers change weekly? → Structure stays same, events may change.
-- Birthday booking? → Yes, Sunday is ideal.
-
-🚫 STRICT RESTRICTIONS (WHAT AI MUST NOT DO):
-- ❌ NEVER ask about today's day.
-- ❌ NEVER create fake urgency or include hidden conditions.
-- ❌ NEVER share other users' data.
-- If user asks for sensitive info: "Sorry 🙏 This information cannot be shared. But I can fully help you with offers and booking 😊"
-
-⚠️ OUTPUT STRUCTURE:
-- Use "---SPLIT---" to separate bubbles (e.g. Intro ---SPLIT--- Details).
-- ❌ No stars (*). ❌ No headings (#).
+⚠️ RULES:
+- Mirror User Language (English priority).
+- ❌ No stars (*). ❌ No headings (#). 
+- Split bubbles (---SPLIT---).
 
 CONTEXT:
 ${contextText || ""}
