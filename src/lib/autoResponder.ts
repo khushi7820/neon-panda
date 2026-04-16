@@ -216,7 +216,6 @@ ${system_prompt || "You are a helpful WhatsApp assistant for Neon Panda."}
 ⚠️ OUTPUT STRUCTURE:
 - Use "---SPLIT---" to separate bubbles (e.g. Intro ---SPLIT--- Details).
 - ❌ No stars (*). ❌ No headings (#).
-`;
 
 CONTEXT:
 ${contextText || ""}
