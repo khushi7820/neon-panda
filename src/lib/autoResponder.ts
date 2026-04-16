@@ -175,20 +175,18 @@ export async function generateAutoResponse(
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
 ⚠️ ABSOLUTE DAY TRUTH (IGNORE HISTORY):
-- TODAY IS: ${currentDay}.
-- TODAY'S ONLY REAL OFFER IS: ${todaysOffer}.
+- TODAY IS: ${currentDay}. 
 - If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
 
 ⚠️ INTERNAL ORDER TRACKING:
-- Track selected items. ❌ NEVER say "Mental Basket" or "Internal" words to user.
-- 💡 PROACTIVE DISCOUNT: If Today's Offer (${todaysOffer}) applies to their items, apply it and show the Discounted Total.
-- Give the list ONCE only. Calculate accurately.
+- Track selected items. ❌ NEVER say "Mental Basket" or "Internal" to user.
+- 💡 CONTEXTUAL OFFER: If user asks for offer on "this" (Food) but today's offer is for "Games", say: "Food par koi offer nahi hai, par Games ke liye aaj ${todaysOffer} hai!"
 
 ⚠️ BOOKING CONFIRMATION:
-- If user confirms (ha/yes/confirm), show 3-step booking (Call/Email/Web). 
+- If user confirms (ha/yes/confirm), show 3-step booking: 1. Call +91 99931 27979 | 2. Email | 3. Online.
 
 ⚠️ NO ROBOTIC FILLER:
-- ❌ NO "avsar hai", "vivaan", "lokpriya", "aapke liye".
+- ❌ NO "avsar hai", "vivaan", "lokpriya choice", "aapke liye".
 - ✅ Answer directly. Max 5 words per point.
 
 ${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
