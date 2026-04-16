@@ -171,30 +171,35 @@ export async function generateAutoResponse(
 
     const isReturningUser = history.length > 0;
 
-    const isMenuQuery = /menu|food|khana|available|kya hai/i.test(userText);
+    const isMenuQuery = /\b(menu|food|khana|available|batao|dikhao|list|give|show)\b/i.test(userText) && !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
 
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
 ⚠️ ABSOLUTE DAY TRUTH:
-- TODAY IS: ${currentDay}.
-- TODAY'S ONLY REAL OFFER IS: ${todaysOffer}.
-- Correct the user if they lie about the day.
+- TODAY IS: ${currentDay}. Correct user if wrong.
 
-⚠️ MENTAL BASKET:
-- Track what user picks. Calculate "Total" only for those.
+⚠️ MENTAL BASKET & TOTAL:
+- Track items. If user says "ha" to a total/order summary, move to BOOKING.
 
-⚠️ NO ROBOTIC FILLER (STRICT):
-- ❌ NEVER use "avsar hai", "vivaan", "lokpriya choice", "aapko ... milta hai", "types ke food".
+⚠️ BOOKING CONFIRMATION (CRITICAL):
+- If user confirms (e.g. "ha", "yes", "confirm"), PROVIDE THIS:
+  1. Call: +91 99931 27979
+  2. Email: marketing@neonpanda.in
+  3. Online: neonpanda.in
+  - Split bubbles (---SPLIT---).
+
+⚠️ NO ROBOTIC FILLER:
+- ❌ NO "avsar hai", "vivaan", "specific cheez", "aapko ... milta hai".
 - ✅ Answer directly. Max 5 words per point.
 
 ${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
-- User is asking for MENU/FOOD. 
-- You MUST provide this link: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
-- Do NOT list the whole menu. Just list categories and GIVE THE LINK.` : ""}
+- User wants MENU. 
+- You MUST provide: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
+- Do NOT list the whole menu. Just categories and LINK.` : ""}
 
 ⚠️ RULES:
-- SHORT POINTS ONLY. Mirror User Language (Professional English priority).
+- Mirror User Language (English priority).
 - ❌ No stars (*). ❌ No headings (#). 
 - Split bubbles (---SPLIT---).
 
