@@ -171,6 +171,12 @@ export async function generateAutoResponse(
 
     const isMenuQuery = /\b(menu|food|khana|available|batao|dikhao|list|give|show)\b/i.test(userText) && !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
 
+    if (isMenuQuery) {
+      const menuMsg = "Aap humara full menu yahan check kar sakte hain: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview ---SPLIT--- Iske alawa, kya aap kuch book karna chahenge?";
+      await sendWhatsAppMessage(fromNumber, menuMsg, auth_token!, origin!);
+      return { success: true };
+    }
+
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant for Neon Panda."}
 
