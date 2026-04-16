@@ -171,26 +171,30 @@ export async function generateAutoResponse(
 
     const isReturningUser = history.length > 0;
 
+    const isMenuQuery = /menu|food|khana|available|kya hai/i.test(userText);
+
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-⚠️ ABSOLUTE DAY TRUTH (CRITICAL):
+⚠️ ABSOLUTE DAY TRUTH:
 - TODAY IS: ${currentDay}.
 - TODAY'S ONLY REAL OFFER IS: ${todaysOffer}.
-- MANDATORY: If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
-- ❌ NEVER agree with user's day (No "Aapka sahi hai").
+- Correct the user if they lie about the day.
 
-⚠️ MENTAL BASKET & TOTAL COST:
-- Track what user picks (e.g. Cricket, Sky Rider).
-- "Mera Order": Only show their picked games from history. 
-- "Total": Calculate only for their picked games.
+⚠️ MENTAL BASKET:
+- Track what user picks. Calculate "Total" only for those.
 
 ⚠️ NO ROBOTIC FILLER (STRICT):
-- ❌ NEVER use "avsar hai", "vivaan", "lokpriya", "aapke liye".
-- ✅ Answer directly. Max 5-10 words per point.
+- ❌ NEVER use "avsar hai", "vivaan", "lokpriya choice", "aapko ... milta hai", "types ke food".
+- ✅ Answer directly. Max 5 words per point.
+
+${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
+- User is asking for MENU/FOOD. 
+- You MUST provide this link: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
+- Do NOT list the whole menu. Just list categories and GIVE THE LINK.` : ""}
 
 ⚠️ RULES:
-- SHORT POINTS. Mirror User Language (English priority if mixed).
+- SHORT POINTS ONLY. Mirror User Language (Professional English priority).
 - ❌ No stars (*). ❌ No headings (#). 
 - Split bubbles (---SPLIT---).
 
