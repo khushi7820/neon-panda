@@ -169,19 +169,15 @@ export async function generateAutoResponse(
 
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
 
-    const isMenuQuery = /\b(menu|food|khana|pakwan|list|dikhao)\b/i.test(userText) && 
-                       !/\b(game|activity|play|trampoline|bowling|khel)\b/i.test(userText) &&
-                       !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
+    const cleanedText = userText.toLowerCase();
+    
+    // Check for Menu/Food (but NOT if games are mentioned)
+    const isMenuQuery = /\b(menu|food|khana|pakwan|dikhao)\b/i.test(cleanedText) && 
+                       !/game|activity|play|trampoline|bowling|khel/i.test(cleanedText);
 
-    const isGamesQuery = /\b(game|activity|khel|trampoline|bowling|list)\b/i.test(userText) && 
-                        /\b(list|show|batao|available|kya hai)\b/i.test(userText) &&
-                        !isMenuQuery;
-
-    if (isMenuQuery) {
-      const menuMsg = "Aap humara full food menu yahan check kar sakte hain: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview ---SPLIT--- Iske alawa, kya aap kuch book karna chahenge?";
-      await sendWhatsAppMessage(fromNumber, menuMsg, auth_token!, origin!);
-      return { success: true };
-    }
+    // Check for Games specifically
+    const isGamesQuery = /game|activity|khel|trampoline|bowling/i.test(cleanedText) || 
+                        (/\b(list|show|available)\b/i.test(cleanedText) && /game|activity|khel/i.test(cleanedText));
 
     if (isGamesQuery) {
       const gamesMsg = `Neon Panda mein kuch popular games hain:
@@ -200,6 +196,12 @@ export async function generateAutoResponse(
 
 Aapke liye koi vishesh game hai? 🎮`;
       await sendWhatsAppMessage(fromNumber, gamesMsg, auth_token!, origin!);
+      return { success: true };
+    }
+
+    if (isMenuQuery) {
+      const menuMsg = "Aap humara full food menu yahan check kar sakte hain: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview ---SPLIT--- Iske alawa, kya aap kuch book karna chahenge?";
+      await sendWhatsAppMessage(fromNumber, menuMsg, auth_token!, origin!);
       return { success: true };
     }
 
