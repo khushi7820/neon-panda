@@ -176,21 +176,20 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-⚠️ ABSOLUTE DAY TRUTH:
-- TODAY IS: ${currentDay}. Correct user if wrong.
+⚠️ ABSOLUTE DAY TRUTH (IGNORE HISTORY):
+- TODAY IS: ${currentDay}.
+- TODAY'S ONLY REAL OFFER IS: ${todaysOffer}.
+- ⚠️ CRITICAL: Ignore any days mentioned in previous messages (History).
+- If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
 
 ⚠️ MENTAL BASKET & TOTAL:
-- Track items. If user says "ha" to a total/order summary, move to BOOKING.
+- Track selected games. "Total" only for selected items. 
 
-⚠️ BOOKING CONFIRMATION (CRITICAL):
-- If user confirms (e.g. "ha", "yes", "confirm"), PROVIDE THIS:
-  1. Call: +91 99931 27979
-  2. Email: marketing@neonpanda.in
-  3. Online: neonpanda.in
-  - Split bubbles (---SPLIT---).
+⚠️ BOOKING CONFIRMATION:
+- If user confirms ordering (ha/yes/confirm), show 3-step booking (Call/Email/Online). 
 
-⚠️ NO ROBOTIC FILLER:
-- ❌ NO "avsar hai", "vivaan", "specific cheez", "aapko ... milta hai".
+⚠️ NO ROBOTIC FILLER (STRICT):
+- ❌ NO "avsar hai", "vivaan", "lokpriya", "aapko ... milta hai".
 - ✅ Answer directly. Max 5 words per point.
 
 ${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
