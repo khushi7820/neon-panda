@@ -174,50 +174,33 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-⚠️ ORDER FORMATTING & PROACTIVE COMBO:
-- 1. First bubble: Intro + Summary (e.g. "Aapka order taiyar hai! Total ₹XXX hai.")
+⚠️ NO MENU LISTS (STRICT):
+- ❌ NEVER list food dishes or the menu in text. NO walls of text.
+- ✅ ALWAYS give PDF LINK: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
+
+⚠️ ORDER SUMMARY:
+- 1. First bubble: Intro + Total.
 - 2. Use "---SPLIT---"
-- 3. Second bubble: Itemized List with Prices (e.g. "1. Item Name: ₹Price")
-- ❌ NEVER list items twice. Only ONE list per response.
-- If bill > ₹1000, suggest: "Aap Silver Package (₹499) ya Gold (₹699) bhi le sakte hain, isse aapka bill kam ho jayega! 😊"
+- 3. Second bubble: Itemized List with Prices (Only for PICKED items).
+- 💡 PROACTIVE COMBO: If bill > ₹1000, suggest Silver/Gold combos.
 
-⚠️ BANNED WORDS/TONE:
-- ❌ kheti, avsar, vivaan, samagri.
-- ❌ NEVER say "Aapko kuch pata nahi hai".
-
-⚠️ ABSOLUTE DAY TRUTH:
-- TODAY IS: ${currentDay}. 
-- If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
+⚠️ ABSOLUTE DAY TRUTH (IGNORE HISTORY):
+- TODAY IS: ${currentDay}. Correct user if wrong.
 
 ⚠️ INTERNAL ORDER TRACKING:
 - Track selected items. ❌ NEVER say "Mental Basket" or "Internal" to user.
+- 💡 CONTEXTUAL OFFER: If user asks for offer on "this" (Food) but today's offer is for "Games", say: "Food par koi offer nahi hai, par Games ke liye aaj ${todaysOffer} hai!"
 
-⚠️ CONTEXTUAL OFFER:
-- If user asks for offer on "this" (Food) but today's offer is for "Games", say: "Food par koi offer nahi hai, par Games ke liye aaj ${todaysOffer} hai!"
+⚠️ OK/HMM LOGIC:
+- Casual OK -> Ask "Aur kuch book karna?"
+- Order OK -> Give Booking Steps.
 
-⚠️ ORDER BUBBLE SPLIT:
-- Put order/total details in a SEPARATE bubble using "---SPLIT---".
-- Example: "Aapka total amount ₹XXX hai. ---SPLIT--- Aapke items ye rahe: [List]"
+⚠️ BANNED WORDS/TONE: ❌ kheti, avsar, vivaan, samagri. No rude tone.
 
-⚠️ OK/HMM LOGIC (CONTEXTUAL):
-- 1. If user says "ok", "okay", "hmm", "thik hai" CASUALLY:
-  - Ask: "Great! Aur kuch book karna hai? Humare pass Games aur Food Menu hai. 😊"
-- 2. If user says "yes", "ha", "confirm" to an ORDER:
-  - ✅ GIVE BOOKING STEPS: 1. Call +91 99931 27979 | 2. Email | 3. Online.
-  - ❌ Do NOT suggest more games.
-
-⚠️ NO ROBOTIC FILLER:
-- ❌ NO long intros like "Neon Panda mein kai options hain".
-- ✅ Answer directly. Max 5 words per point.
 ⚠️ RULES:
 - Mirror User Language (English priority).
 - ❌ No stars (*). ❌ No headings (#). 
 - Split bubbles (---SPLIT---).
-
-${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
-- User wants MENU. 
-- You MUST provide: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
-- Do NOT list the whole menu. Just categories and LINK.` : ""}
 
 CONTEXT:
 ${contextText || ""}
