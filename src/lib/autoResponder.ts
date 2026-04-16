@@ -169,8 +169,6 @@ export async function generateAutoResponse(
 
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
 
-    const isReturningUser = history.length > 0;
-
     const isMenuQuery = /\b(menu|food|khana|available|batao|dikhao|list|give|show)\b/i.test(userText) && !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
 
     const systemPrompt = `
@@ -179,17 +177,18 @@ ${system_prompt || "You are a helpful WhatsApp assistant."}
 ⚠️ ABSOLUTE DAY TRUTH (IGNORE HISTORY):
 - TODAY IS: ${currentDay}.
 - TODAY'S ONLY REAL OFFER IS: ${todaysOffer}.
-- ⚠️ CRITICAL: Ignore any days mentioned in previous messages (History).
 - If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
 
-⚠️ MENTAL BASKET & TOTAL:
-- Track selected games. "Total" only for selected items. 
+⚠️ INTERNAL ORDER TRACKING:
+- Track selected items. ❌ NEVER say "Mental Basket" or "Internal" words to user.
+- 💡 PROACTIVE DISCOUNT: If Today's Offer (${todaysOffer}) applies to their items, apply it and show the Discounted Total.
+- Give the list ONCE only. Calculate accurately.
 
 ⚠️ BOOKING CONFIRMATION:
-- If user confirms ordering (ha/yes/confirm), show 3-step booking (Call/Email/Online). 
+- If user confirms (ha/yes/confirm), show 3-step booking (Call/Email/Web). 
 
-⚠️ NO ROBOTIC FILLER (STRICT):
-- ❌ NO "avsar hai", "vivaan", "lokpriya", "aapko ... milta hai".
+⚠️ NO ROBOTIC FILLER:
+- ❌ NO "avsar hai", "vivaan", "lokpriya", "aapke liye".
 - ✅ Answer directly. Max 5 words per point.
 
 ${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
