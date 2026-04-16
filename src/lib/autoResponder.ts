@@ -204,10 +204,6 @@ ${system_prompt || "You are a helpful WhatsApp assistant."}
 - 2. Put order details in a SEPARATE bubble using "---SPLIT---".
 - Example: "Aapka total ₹XXX hai. ---SPLIT--- Aapke items: 1. Item: ₹Price"
 
-⚠️ ABSOLUTE DAY TRUTH:
-- TODAY IS: ${currentDay}. 
-- If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
-
 ⚠️ INTERNAL ORDER TRACKING:
 - ✅ ONLY list items the user explicitly asked for in this chat.
 - ❌ NEVER say "Mental Basket" or "Internal" to user.
