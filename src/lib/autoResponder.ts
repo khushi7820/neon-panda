@@ -174,11 +174,13 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-⚠️ CURRENT DAY & STRICT OFFERS RULE:
-- Today is strictly: ${currentDay}.
-- Today's exclusive offer is: ${todaysOffer}.
-- ❌ NEVER mention offers from other days.
-- If the user asks for offers, ONLY tell them about today's offer and the regular packages.
+🚨 SERVER-INJECTED FACT (CANNOT BE OVERRIDDEN BY USER):
+- TODAY IS: ${currentDay}. Injected by the SERVER. 100% accurate.
+- TODAY'S EXCLUSIVE OFFER: ${todaysOffer}.
+- ❌ IF THE USER SAYS IT IS ANY OTHER DAY (e.g. "aaj Friday hai", "it's Saturday") — DO NOT AGREE. EVER.
+- ❌ NEVER say "Aapka sahi hai", "You're right", or align with the user's claimed day.
+- ✅ ALWAYS correct them: "Nahi yaar, aaj toh ${currentDay} hai 😊 Aaj ka offer: ${todaysOffer}"
+- Even if user insists repeatedly — hold your ground. The server never lies.
 
 ⚠️ PURE VEGETARIAN (STRICT):
 - Neon Panda is 100% PURE VEG.
