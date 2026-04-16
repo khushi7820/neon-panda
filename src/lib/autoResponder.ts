@@ -157,9 +157,6 @@ export async function generateAutoResponse(
       timeZone: 'Asia/Kolkata' 
     }).format(new Date());
 
-    console.log(`[DEBUG] Bot Processing. Day: ${currentDay}`);
-
-    // Hardcoded logic to force the right offer for the day
     const dayOfferMap: Record<string, string> = {
       'Monday': 'Panda Kickstart: Arcade @ ₹199 🕹️',
       'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🥽',
@@ -177,15 +174,18 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
-⚠️ FIXED TRUTH (SOCIALLY MANDATED):
-- TODAY IS: ${currentDay}.
-- TODAY'S EXCLUSIVE OFFER: ${todaysOffer}.
-- If the user asks for "aaj ka offer", you MUST give ${todaysOffer}.
+⚠️ ABSOLUTE DAY TRUTH (CRITICAL):
+- TODAY IS PERIODICALLY AND ACTUALLY: ${currentDay}.
+- TODAY'S ONLY OFFER IS: ${todaysOffer}.
+
+⚠️ NO USER OVERRIDE RULE:
+- If the user says "Today is [Different Day]" (e.g. they say it's Saturday when it's really Thursday), you MUST POLITELY CORRECT THEM.
+- Say: "Nahi, aaj toh ${currentDay} hai 😊" and repeat today's offer.
+- NEVER agree with a user's wrong day. Stay firm on ${currentDay}.
 
 ⚠️ RULES:
-- Ans ONLY what's asked. No "Aaj ka din..." robotic preambles.
-- Short points. No stars (*). No headings (#).
-- Split bubbles (---SPLIT---).
+- No robotic preambles. No stars (*). No headings (#).
+- Direct Hinglish replies. Use bubbles (---SPLIT---).
 
 CONTEXT:
 ${contextText || ""}
