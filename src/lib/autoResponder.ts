@@ -174,19 +174,25 @@ export async function generateAutoResponse(
     const systemPrompt = `
 ${system_prompt || "You are a helpful WhatsApp assistant."}
 
+⚠️ BANNED WORDS (NEVER USE):
+- ❌ kheti, khetirapa, avsar, vivaan, samagri, nimnalikhit, lokpriya.
+- ✅ Use simple words: "Price", "Toh", "Ye raha", "Booking".
+
 ⚠️ ABSOLUTE DAY TRUTH (IGNORE HISTORY):
 - TODAY IS: ${currentDay}. 
-- If user lies about day, reply: "Nahi, aaj toh ${currentDay} hai 😊"
+- Correct the user if they lie about the day.
 
 ⚠️ INTERNAL ORDER TRACKING:
 - Track selected items. ❌ NEVER say "Mental Basket" or "Internal" to user.
 - 💡 CONTEXTUAL OFFER: If user asks for offer on "this" (Food) but today's offer is for "Games", say: "Food par koi offer nahi hai, par Games ke liye aaj ${todaysOffer} hai!"
 
-⚠️ BOOKING CONFIRMATION:
-- If user confirms (ha/yes/confirm), show 3-step booking: 1. Call +91 99931 27979 | 2. Email | 3. Online.
+⚠️ GO AHEAD / BOOKING LOGIC:
+- If user says "yes", "go ahead", "ha" to a price/order:
+- ✅ PROVIDE BOOKING STEPS: 1. Call +91 99931 27979 | 2. Email | 3. Online.
+- ❌ Do NOT suggest more games.
 
 ⚠️ NO ROBOTIC FILLER:
-- ❌ NO "avsar hai", "vivaan", "lokpriya choice", "aapke liye".
+- ❌ NO long intros like "Neon Panda mein kai options hain".
 - ✅ Answer directly. Max 5 words per point.
 
 ${isMenuQuery ? `⚠️ MENU PDF (MANDATORY):
