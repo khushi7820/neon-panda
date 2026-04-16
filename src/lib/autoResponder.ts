@@ -169,11 +169,37 @@ export async function generateAutoResponse(
 
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
 
-    const isMenuQuery = /\b(menu|food|khana|available|batao|dikhao|list|give|show)\b/i.test(userText) && !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
+    const isMenuQuery = /\b(menu|food|khana|pakwan|list|dikhao)\b/i.test(userText) && 
+                       !/\b(game|activity|play|trampoline|bowling|khel)\b/i.test(userText) &&
+                       !/\b(ha|yes|ok|confirm|order|book)\b/i.test(userText);
+
+    const isGamesQuery = /\b(game|activity|khel|trampoline|bowling|list)\b/i.test(userText) && 
+                        /\b(list|show|batao|available|kya hai)\b/i.test(userText) &&
+                        !isMenuQuery;
 
     if (isMenuQuery) {
-      const menuMsg = "Aap humara full menu yahan check kar sakte hain: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview ---SPLIT--- Iske alawa, kya aap kuch book karna chahenge?";
+      const menuMsg = "Aap humara full food menu yahan check kar sakte hain: https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview ---SPLIT--- Iske alawa, kya aap kuch book karna chahenge?";
       await sendWhatsAppMessage(fromNumber, menuMsg, auth_token!, origin!);
+      return { success: true };
+    }
+
+    if (isGamesQuery) {
+      const gamesMsg = `Neon Panda mein kuch popular games hain:
+1. TRAMPOLINE: Bounce, Jump, Play
+2. BOWLING: Roll, Strike, Celebrate
+3. KIDS PLAY: Safe Play, Explore, NEON-STOP FUN
+4. HYPER GRID: Step Fast, Think Faster, Win Smarter
+5. PANDA CLIMB: Grip, Climb, Conquer
+6. CRICKET: Play, Practice, Compete
+7. ROPE COURSE: Climb, Balance, Conquer
+8. SKY RIDER: Ride, Glide, Feel the Rush
+9. GRAVITY GLIDE: Slide, Soar, Feel the Drop
+10. ARCADE GAMES: Play, Compete, Win
+11. VR GAMES: Enter, Explore, Experience
+12. SHOOTING: Play, Compete, Win
+
+Aapke liye koi vishesh game hai? 🎮`;
+      await sendWhatsAppMessage(fromNumber, gamesMsg, auth_token!, origin!);
       return { success: true };
     }
 
