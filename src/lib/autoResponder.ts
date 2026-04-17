@@ -130,17 +130,6 @@ export async function generateAutoResponse(
         content: m.content_text as string,
       }));
 
-    const normalizedText = userText.toLowerCase().trim();
-    const isGreeting = /^(hi|hello|hey|hiii|hey|namaste|hola)$/i.test(normalizedText);
-
-    if (isGreeting) {
-      console.log("👋 Simple greeting detected, sending standard reply (Saving Tokens)");
-      const greetingMsg = "Hey! Welcome to Neon Panda 🐼 Would you like to explore our exciting Games or check out our Food Menu?";
-      // auth_token and origin are already defined above
-      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
-      return { success: true };
-    }
-
     /* 5️⃣ RAG */
     const embedding = await embedText(userText);
     if (!embedding) {
@@ -162,13 +151,13 @@ export async function generateAutoResponse(
     }).format(new Date());
 
     const dayOfferMap: Record<string, string> = {
-      'Monday': 'Panda Kickstart: Arcade @ ₹199 🕹️',
-      'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🥽',
-      'Wednesday': 'Midweek Madness: Bowling Session @ ₹249 🎳',
+      'Monday': 'Panda Kickstart: Arcade + Indoor Games @ ₹199 🎮',
+      'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🕶',
+      'Wednesday': 'Midweek Madness: Bowling @ ₹249/person 🎳',
       'Thursday': 'Throwdown Thursday: Multiplayer Games @ ₹199 🎮',
-      'Friday': 'Panda Face-Off: Live Game Night @ ₹199 🏁',
-      'Saturday': 'Super Saturday: Check combo pricing! 🥳',
-      'Sunday': 'Family (₹999) | Friends (₹1,499) | Celebration (₹1,999) 📅'
+      'Friday': 'Panda Face-Off: Live Game Night @ ₹199 🔥',
+      'Saturday': 'Super Saturday: Combo & Group Pricing 🎉',
+      'Sunday': 'Family Pack (4 ppl) ₹999 | Friends (6 ppl) ₹1,499 | Celebration (8 ppl) ₹1,999'
     };
 
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
