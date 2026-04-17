@@ -119,7 +119,7 @@ export async function generateAutoResponse(
       .select("content_text, event_type")
       .or(`from_number.eq.${fromNumber},to_number.eq.${fromNumber}`)
       .order("received_at", { ascending: true })
-      .limit(12); // Balanced for 70B model tokens
+      .limit(18); // Increased for better memory in booking flow
 
     const history: { role: "user" | "assistant"; content: string }[] = (
       historyRows || []
@@ -270,7 +270,7 @@ ${selectionReminder}
       max_tokens: 600,
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-10),
+        ...history.slice(-16),
         { role: "user", content: userText },
       ],
     });
