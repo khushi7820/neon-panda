@@ -198,24 +198,21 @@ export async function generateAutoResponse(
 
     const recentUserMessages = history
       .filter(h => h.role === 'user')
-      .slice(-5)
+      .slice(-3)
       .map(h => h.content)
       .join(' | ');
 
     const selectionReminder = `
-🔒 SELECTION LOCK (MUST FOLLOW):
+🔒 STATE LOCK (CURRENT CONTEXT):
 USER RECENTLY SAID: ${recentUserMessages}
-BOT PREVIOUSLY CONFIRMED: ${lastAssistantBill}
+BOT'S LAST BILL: ${lastAssistantBill}
 
-⚠️ CRITICAL: If the bot (YOU) already confirmed a list of games (e.g. 3 games) in the previous message, STICK TO IT. 
-NEVER revert to just one daily offer after the user says "confirm" or "yes".
-Calculating Total: Always sum up ALL games user chose earlier.
-
-🎯 CONFIRMATION LINK:
-- If YOUR previous message ended with "confirm karu?" or "book karu?" and user says "ha", "yes", or "confirm":
-- IMMEDIATELY move to STEP 2: Ask "Kitne players aur kis time?"
-- NEVER say "Maine kuch specific nahi pucha tha".
-- YOU ARE A SALES BOT. If they say "confirm", it means they confirmed the last bill you gave.
+⚠️ STEP PROGRESSION RULES:
+1. If "BOT'S LAST BILL" has a list of games (Total ₹), and "USER RECENTLY SAID" is "confirm" or "ha":
+   → YOU ARE NOW IN STEP 2. 
+   → ACTION: Ask "Kitne players aur kis time? 🕰️"
+   → NEVER ask what they are confirming.
+   → NEVER reset the bill.
 `;
 
     const systemPrompt = `
