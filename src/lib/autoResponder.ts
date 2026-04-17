@@ -241,6 +241,9 @@ CONTINUATION WORDS:
 MEMORY:
 - Read full chat history before replying
 - Remember user's selected games, combo, food items
+- NO REVERTING: If user selects Today's Offer PLUS other games (e.g. Bowling, Sky Rider), ALWAYS keep ALL items in the list until the very end. 
+- NEVER drop user-selected games just because they are booking for 'today'. 
+- Calculating Total: (Game1 + Game2 + Offer) x Total Players.
 - If user asks "mera total" -> list all selections + total
 - NEVER say "kuchh nahi select kiya" if history shows selections
 
