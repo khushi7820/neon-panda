@@ -119,7 +119,7 @@ export async function generateAutoResponse(
       .select("content_text, event_type")
       .or(`from_number.eq.${fromNumber},to_number.eq.${fromNumber}`)
       .order("received_at", { ascending: true })
-      .limit(15); // Increased history to 15 for better memory
+      .limit(8); // Reduced to 8 to avoid Groq 6000 TPM limit
 
     const history: { role: "user" | "assistant"; content: string }[] = (
       historyRows || []
@@ -165,10 +165,12 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      3 // Reduced context to save payload space
+      3 // Reduced to 3 chunks to save tokens
     );
 
-    const contextText = matches.map((m) => m.chunk).join("\n\n");
+    const contextText = matches
+      .map((m) => m.chunk.slice(0, 400)) // Truncated to 400 chars to save space
+      .join("\n\n");
 
     /* 6️⃣ SYSTEM PROMPT & DAY LOGIC */
     const currentDay = new Intl.DateTimeFormat('en-US', {
@@ -229,10 +231,10 @@ ${contextText || ""}
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       temperature: 0.1,
-      max_tokens: 1024,
+      max_tokens: 500, // Reduced from 1024
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-15),
+        ...history.slice(-8),
         { role: "user", content: userText },
       ],
     });
