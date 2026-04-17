@@ -191,28 +191,49 @@ export async function generateAutoResponse(
 
     // Enhanced Selection Tracker: Capture User choices AND Assistant's previous confirmation
     const lastAssistantBill = history
-      .filter(h => h.role === 'assistant' && (h.content.toLowerCase().includes('selected') || h.content.toLowerCase().includes('total')))
+      .filter(h => h.role === 'assistant' &&
+        (h.content.toLowerCase().includes('selected items') ||
+          h.content.toLowerCase().includes('total:') ||
+          h.content.includes('₹') && h.content.toLowerCase().includes('total')))
       .slice(-1)
       .map(h => h.content)
       .join(' ');
 
     const recentUserMessages = history
       .filter(h => h.role === 'user')
-      .slice(-3)
+      .slice(-8)
       .map(h => h.content)
       .join(' | ');
 
     const selectionReminder = `
-🔒 STATE LOCK (CURRENT CONTEXT):
-USER RECENTLY SAID: ${recentUserMessages}
-BOT'S LAST BILL: ${lastAssistantBill}
+🔒 STATE LOCK (READ THIS BEFORE REPLYING):
+FULL USER HISTORY: ${recentUserMessages}
+LAST BILL GIVEN BY BOT: ${lastAssistantBill}
 
-⚠️ STEP PROGRESSION RULES:
-1. If "BOT'S LAST BILL" has a list of games (Total ₹), and "USER RECENTLY SAID" is "confirm" or "ha":
-   → YOU ARE NOW IN STEP 2. 
-   → ACTION: Ask "Kitne players aur kis time? 🕰️"
-   → NEVER ask what they are confirming.
-   → NEVER reset the bill.
+⚠️ CRITICAL FLOW LOGIC:
+
+STEP DETECTION (check user's messages carefully):
+- If user sent items (games/food) BEFORE → Items are LOCKED IN
+- If user said "book karo/confirm/ok" → They agree, move forward
+- If user shared players count → Save it
+- If user shared time → Save it
+- If user shared name+number → Finalize booking
+
+🚨 WHEN USER SHARES TIME (like "6pm", "7 evening"):
+→ They are IN BOOKING FLOW (already past step 1)
+→ DO NOT ask "kya karne ke liye?"
+→ DO NOT reset to menu
+→ ACTION: Now ask for Name + Contact Number
+→ USE items from LAST BILL GIVEN BY BOT
+
+🚨 WHEN USER SHARES NAME + NUMBER:
+→ This is FINAL STEP
+→ Generate booking summary with ALL items from LAST BILL
+→ Use ---SPLIT--- for 2 bubbles
+→ Include: Name, Contact, Games, Players, Time, Total
+
+⚠️ NEVER reset the conversation or ask what user is confirming mid-flow.
+⚠️ ALWAYS carry forward items from LAST BILL to final booking.
 `;
 
     const systemPrompt = `
