@@ -113,7 +113,7 @@ export async function generateAutoResponse(
       return { success: false, error: "Empty message" };
     }
 
-    /* 4️⃣ CHAT HISTORY */
+    /* 4️⃣ CHAT HISTORY & GREETING */
     const { data: historyRows } = await supabase
       .from("whatsapp_messages")
       .select("content_text, event_type")
@@ -129,6 +129,35 @@ export async function generateAutoResponse(
         role: m.event_type === "MoMessage" ? "user" : "assistant",
         content: m.content_text as string,
       }));
+
+    const normalizedText = userText.toLowerCase().trim();
+    const isGreeting = /^(hi|hello|hey|hiii|namaste|hola|helo|hlo|start)$/i.test(normalizedText);
+
+    if (isGreeting) {
+      console.log("👋 Greeting detected, sending dynamic reply");
+      
+      const currentDay = new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        timeZone: 'Asia/Kolkata'
+      }).format(new Date());
+
+      const dayOfferMap: Record<string, string> = {
+        'Monday': 'Panda Kickstart: Arcade + Indoor Games @ ₹199 🎮',
+        'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🕶',
+        'Wednesday': 'Midweek Madness: Bowling @ ₹249/person 🎳',
+        'Thursday': 'Throwdown Thursday: Multiplayer Games @ ₹199 🎮',
+        'Friday': 'Panda Face-Off: Live Game Night @ ₹199 🔥',
+        'Saturday': 'Super Saturday: Combo & Group Pricing 🎉',
+        'Sunday': 'Family Pack (4 ppl) ₹999 | Friends (6 ppl) ₹1,499 | Celebration (8 ppl) ₹1,999'
+      };
+
+      const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
+      
+      const greetingMsg = `Hey! Welcome to Neon Panda 🐼\nAaj ka special: ${todaysOffer}\nGames explore karna hai ya Food menu dekhna hai? 😊`;
+      
+      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
+      return { success: true };
+    }
 
     /* 5️⃣ RAG */
     const embedding = await embedText(userText);
