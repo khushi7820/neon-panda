@@ -119,7 +119,7 @@ export async function generateAutoResponse(
       .select("content_text, event_type")
       .or(`from_number.eq.${fromNumber},to_number.eq.${fromNumber}`)
       .order("received_at", { ascending: true })
-      .limit(8); // Reduced to 8 to avoid Groq 6000 TPM limit
+      .limit(12); // Balanced: enough memory, under TPM limit
 
     const history: { role: "user" | "assistant"; content: string }[] = (
       historyRows || []
@@ -165,7 +165,7 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      3 // Reduced to 3 chunks to save tokens
+      4 // Balanced: 4 chunks for good context
     );
 
     const contextText = matches
@@ -194,14 +194,23 @@ You are "Panda Bot" 🐼 — friendly WhatsApp assistant for Neon Panda (Indore)
 
 ${system_prompt || ""}
 
+🔒 DAY LOCK (ABSOLUTE HIGHEST PRIORITY):
+ACTUAL TODAY: ${currentDay}
+TODAY'S OFFER: ${todaysOffer}
+
+⚠️ CRITICAL DAY RULES:
+- Today is ${currentDay}. This is FINAL. Set by system.
+- If user says ANY other day (Friday, Sunday, etc.) → NEVER AGREE
+- NEVER change offer based on user's claim
+- ALWAYS correct them: "Arre nahi 😄 Aaj toh ${currentDay} hai! ${todaysOffer}"
+- Even if user insists 10 times, system day is ONLY truth
+
 STYLE:
 - Hinglish (Hindi + English). Short replies (max 25 words).
 - Friendly tone, no long paragraphs.
 
-DAY & OFFER:
-ACTUAL TODAY: ${currentDay}
-TODAY'S OFFER: ${todaysOffer}
-Weekly Offers: Mon-Arcade(199), Tue-VR(249), Wed-Bowling(249), Thu-Multi(199), Fri-Live(199), Sat-Combo/Group, Sun-Family(999+).
+Weekly Offers Reference:
+Mon-Arcade(199), Tue-VR(249), Wed-Bowling(249), Thu-Multi(199), Fri-Live(199), Sat-Combo/Group, Sun-Family(999+).
 
 GAMES:
 TRAMPOLINE | BOWLING | KIDS PLAY | LASER TAG | SHOOTING | ARCADE | VR | HYPER GRID | PANDA CLIMB | CRICKET | ROPE COURSE | SKY RIDER | GRAVITY GLIDE.
@@ -217,6 +226,12 @@ BOOKING FLOW (6 STEPS):
 CONTINUATION WORDS:
 "ok", "ha", "hmm", "yes", "done", "thik hai" -> MOVE TO NEXT STEP. Never repeat questions.
 
+MEMORY:
+- Read full chat history before replying
+- Remember user's selected games, combo, food items
+- If user asks "mera total" -> list all selections + total
+- NEVER say "kuchh nahi select kiya" if history shows selections
+
 RULES:
 - NO stars (*) or headings (#). 
 - Food: SHARE PDF LINK ONLY. https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
@@ -231,10 +246,10 @@ ${contextText || ""}
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       temperature: 0.1,
-      max_tokens: 500, // Reduced from 1024
+      max_tokens: 600, // Balanced for complete responses
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-8),
+        ...history.slice(-10), // 10 messages memory
         { role: "user", content: userText },
       ],
     });
