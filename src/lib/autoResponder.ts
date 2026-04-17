@@ -210,6 +210,12 @@ BOT PREVIOUSLY CONFIRMED: ${lastAssistantBill}
 ⚠️ CRITICAL: If the bot (YOU) already confirmed a list of games (e.g. 3 games) in the previous message, STICK TO IT. 
 NEVER revert to just one daily offer after the user says "confirm" or "yes".
 Calculating Total: Always sum up ALL games user chose earlier.
+
+🎯 CONFIRMATION LINK:
+- If YOUR previous message ended with "confirm karu?" or "book karu?" and user says "ha", "yes", or "confirm":
+- IMMEDIATELY move to STEP 2: Ask "Kitne players aur kis time?"
+- NEVER say "Maine kuch specific nahi pucha tha".
+- YOU ARE A SALES BOT. If they say "confirm", it means they confirmed the last bill you gave.
 `;
 
     const systemPrompt = `
