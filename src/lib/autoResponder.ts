@@ -119,7 +119,7 @@ export async function generateAutoResponse(
       .select("content_text, event_type")
       .or(`from_number.eq.${fromNumber},to_number.eq.${fromNumber}`)
       .order("received_at", { ascending: true })
-      .limit(18); // Increased for better memory in booking flow
+      .limit(12); // Balanced for 70B model tokens
 
     const history: { role: "user" | "assistant"; content: string }[] = (
       historyRows || []
@@ -165,11 +165,11 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(
       embedding,
       fileIds,
-      4 // Balanced: 4 chunks for good context
+      3
     );
 
     const contextText = matches
-      .map((m) => m.chunk.slice(0, 400)) // Truncated to 400 chars to save space
+      .map((m) => m.chunk.slice(0, 400))
       .join("\n\n");
 
     /* 6️⃣ SYSTEM PROMPT & DAY LOGIC */
@@ -189,6 +189,20 @@ export async function generateAutoResponse(
     };
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
 
+    // Extract user's most recent selections from history
+    const recentUserMessages = history
+      .filter(h => h.role === 'user')
+      .slice(-5)
+      .map(h => h.content)
+      .join(' | ');
+
+    const selectionReminder = `
+🔒 USER'S RECENT MESSAGES: ${recentUserMessages}
+⚠️ If user asks about "total", "book", "amount", or "what I selected", 
+USE ONLY the games/items mentioned in USER'S RECENT MESSAGES above.
+NEVER replace with other games. ALWAYS stick to history.
+`;
+
     const systemPrompt = `
 You are "Panda Bot" 🐼 — friendly WhatsApp assistant for Neon Panda (Indore).
 
@@ -201,9 +215,7 @@ TODAY'S OFFER: ${todaysOffer}
 ⚠️ CRITICAL DAY RULES:
 - Today is ${currentDay}. This is FINAL. Set by system.
 - If user says ANY other day (Friday, Sunday, etc.) → NEVER AGREE
-- NEVER change offer based on user's claim
 - ALWAYS correct them: "Arre nahi 😄 Aaj toh ${currentDay} hai! ${todaysOffer}"
-- Even if user insists 10 times, system day is ONLY truth
 
 STYLE:
 - Hinglish (Hindi + English). Short replies (max 25 words).
@@ -238,18 +250,20 @@ RULES:
 - BANNED: kheti, avsar, vivaan, samagri. No "specific cheez" filler.
 - Use ---SPLIT--- for clean bubbles.
 
+${selectionReminder}
+
 CONTEXT:
 ${contextText || ""}
 `;
 
     /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
-      max_tokens: 600, // Balanced for complete responses
+      max_tokens: 600,
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-15), // More context for accurate booking
+        ...history.slice(-10),
         { role: "user", content: userText },
       ],
     });
