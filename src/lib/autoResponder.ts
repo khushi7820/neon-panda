@@ -189,7 +189,13 @@ export async function generateAutoResponse(
     };
     const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
 
-    // Extract user's most recent selections from history
+    // Enhanced Selection Tracker: Capture User choices AND Assistant's previous confirmation
+    const lastAssistantBill = history
+      .filter(h => h.role === 'assistant' && (h.content.toLowerCase().includes('selected') || h.content.toLowerCase().includes('total')))
+      .slice(-1)
+      .map(h => h.content)
+      .join(' ');
+
     const recentUserMessages = history
       .filter(h => h.role === 'user')
       .slice(-5)
@@ -197,10 +203,13 @@ export async function generateAutoResponse(
       .join(' | ');
 
     const selectionReminder = `
-🔒 USER'S RECENT MESSAGES: ${recentUserMessages}
-⚠️ If user asks about "total", "book", "amount", or "what I selected", 
-USE ONLY the games/items mentioned in USER'S RECENT MESSAGES above.
-NEVER replace with other games. ALWAYS stick to history.
+🔒 SELECTION LOCK (MUST FOLLOW):
+USER RECENTLY SAID: ${recentUserMessages}
+BOT PREVIOUSLY CONFIRMED: ${lastAssistantBill}
+
+⚠️ CRITICAL: If the bot (YOU) already confirmed a list of games (e.g. 3 games) in the previous message, STICK TO IT. 
+NEVER revert to just one daily offer after the user says "confirm" or "yes".
+Calculating Total: Always sum up ALL games user chose earlier.
 `;
 
     const systemPrompt = `
@@ -214,8 +223,7 @@ TODAY'S OFFER: ${todaysOffer}
 
 ⚠️ CRITICAL DAY RULES:
 - Today is ${currentDay}. This is FINAL. Set by system.
-- If user says ANY other day (Friday, Sunday, etc.) → NEVER AGREE
-- ALWAYS correct them: "Arre nahi 😄 Aaj toh ${currentDay} hai! ${todaysOffer}"
+- If user says ANY other day → ALWAYS correct them politely.
 
 STYLE:
 - Hinglish (Hindi + English). Short replies (max 25 words).
@@ -239,13 +247,9 @@ CONTINUATION WORDS:
 "ok", "ha", "hmm", "yes", "done", "thik hai" -> MOVE TO NEXT STEP. Never repeat questions.
 
 MEMORY:
-- Read full chat history before replying
-- Remember user's selected games, combo, food items
-- NO REVERTING: If user selects Today's Offer PLUS other games (e.g. Bowling, Sky Rider), ALWAYS keep ALL items in the list until the very end. 
-- NEVER drop user-selected games just because they are booking for 'today'. 
-- Calculating Total: (Game1 + Game2 + Offer) x Total Players.
-- If user asks "mera total" -> list all selections + total
-- NEVER say "kuchh nahi select kiya" if history shows selections
+- Read full chat history before replying.
+- NO REVERTING: Never drop user-selected games just because they are booking for 'today'. 
+- NO DATA LOSS: If user confirmed a combo, carry it forward to step 4, 5 and 6.
 
 RULES:
 - NO stars (*) or headings (#). 
@@ -253,10 +257,10 @@ RULES:
 - BANNED: kheti, avsar, vivaan, samagri. No "specific cheez" filler.
 - Use ---SPLIT--- for clean bubbles.
 
-${selectionReminder}
-
 CONTEXT:
 ${contextText || ""}
+
+${selectionReminder}
 `;
 
     /* 7️⃣ LLM */
