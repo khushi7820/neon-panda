@@ -55,7 +55,11 @@ export async function generateAutoResponse(
   mediaUrl?: string
 ): Promise<AutoResponseResult> {
   try {
-    /* 1️⃣ FILE MAPPING */
+    /* 1️⃣ NUMBER VALIDATION & FILE MAPPING */
+    if (toNumber !== '15558459146') {
+      console.log(`🚫 Auto-responder disabled for number: ${toNumber}`);
+      return { success: false, error: "Auto-responder only active for 15558459146" };
+    }
     const fileIds = await getFilesForPhoneNumber(toNumber);
 
     if (fileIds.length === 0) {
