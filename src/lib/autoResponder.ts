@@ -23,7 +23,7 @@ export type AutoResponseResult = {
 async function detectLanguage(text: string): Promise<string> {
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0,
       messages: [
         {
@@ -151,7 +151,7 @@ export async function generateAutoResponse(
 
       const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
       const greetingMsg = `Hey! Welcome to Neon Panda 🐼\nAaj ${currentDay} hai, aur aaj ka special: ${todaysOffer}\nGames explore karna hai ya Food menu dekhna hai? 😊`;
-      
+
       await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
       return { success: true };
     }
