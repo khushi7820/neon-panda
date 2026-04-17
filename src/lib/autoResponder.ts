@@ -119,7 +119,7 @@ export async function generateAutoResponse(
       .select("content_text, event_type")
       .or(`from_number.eq.${fromNumber},to_number.eq.${fromNumber}`)
       .order("received_at", { ascending: true })
-      .limit(10); // Reduced history to save payload space
+      .limit(15); // Increased history to 15 for better memory
 
     const history: { role: "user" | "assistant"; content: string }[] = (
       historyRows || []
@@ -232,7 +232,7 @@ ${contextText || ""}
       max_tokens: 1024,
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-10),
+        ...history.slice(-15),
         { role: "user", content: userText },
       ],
     });
