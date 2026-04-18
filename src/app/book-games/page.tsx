@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const GAMES = [
   { id: 'trampoline', name: 'Trampoline', emoji: '🤸', price: 299 },
@@ -24,25 +25,129 @@ const TIME_SLOTS = [
   '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
 ];
 
-export default function BookGamesPage() {
+// Day-wise offers
+const DAILY_OFFERS: Record<string, {
+  name: string;
+  price: number;
+  description: string;
+  emoji: string;
+  includedGames: string[];
+}> = {
+  Monday: {
+    name: 'Panda Kickstart',
+    price: 199,
+    description: 'Arcade + Indoor Games',
+    emoji: '🎮',
+    includedGames: ['arcade', 'hyper_grid']
+  },
+  Tuesday: {
+    name: 'Turbo Tuesday VR',
+    price: 249,
+    description: 'VR Experience Special',
+    emoji: '🕶️',
+    includedGames: ['vr']
+  },
+  Wednesday: {
+    name: 'Midweek Madness',
+    price: 249,
+    description: 'Bowling Special',
+    emoji: '🎳',
+    includedGames: ['bowling']
+  },
+  Thursday: {
+    name: 'Throwdown Thursday',
+    price: 199,
+    description: 'Multiplayer Games',
+    emoji: '🎮',
+    includedGames: ['arcade', 'hyper_grid']
+  },
+  Friday: {
+    name: 'Panda Face-Off',
+    price: 199,
+    description: 'Live Game Night',
+    emoji: '🔥',
+    includedGames: ['laser_tag']
+  },
+  Saturday: {
+    name: 'Super Saturday',
+    price: 499,
+    description: 'Combo Pricing (Bowling + Trampoline + Arcade)',
+    emoji: '🎉',
+    includedGames: ['bowling', 'trampoline', 'arcade']
+  },
+  Sunday: {
+    name: 'Family Fun Day',
+    price: 999,
+    description: 'Family Pack (4 people)',
+    emoji: '👨‍👩‍👧‍👦',
+    includedGames: ['trampoline', 'bowling', 'kids_play', 'arcade']
+  },
+};
+
+function getTodayDay(): string {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    timeZone: 'Asia/Kolkata'
+  });
+}
+
+function BookingForm() {
+  const searchParams = useSearchParams();
+
+  // Store original selections from URL (for change detection)
+  const [originalGames, setOriginalGames] = useState<string[]>([]);
+
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [players, setPlayers] = useState(1);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [applyOffer, setApplyOffer] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<any>(null);
   const [error, setError] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
+  const todayDay = getTodayDay();
+  const todayOffer = DAILY_OFFERS[todayDay];
 
-  // Calculate totals
-  const perPersonPrice = selectedGames.reduce((sum, id) => {
+  // Pre-select from URL params
+  useEffect(() => {
+    const gamesParam = searchParams.get('games');
+    if (gamesParam) {
+      const preSelected = gamesParam.split(',').filter(g =>
+        GAMES.some(game => game.id === g)
+      );
+      if (preSelected.length > 0) {
+        setSelectedGames(preSelected);
+        setOriginalGames(preSelected);
+      }
+    }
+  }, [searchParams]);
+
+  // Calculate prices
+  const regularPrice = selectedGames.reduce((sum, id) => {
     const game = GAMES.find(g => g.id === id);
     return sum + (game?.price || 0);
   }, 0);
+
+  const perPersonPrice = applyOffer && todayOffer ? todayOffer.price : regularPrice;
   const grandTotal = perPersonPrice * players;
+  const savings = applyOffer && todayOffer ? (regularPrice - todayOffer.price) * players : 0;
+
+  // Detect changes from original selection
+  const hasChanges = () => {
+    if (originalGames.length === 0) return false;
+    if (originalGames.length !== selectedGames.length) return true;
+    return !originalGames.every(g => selectedGames.includes(g));
+  };
+
+  const getChanges = () => {
+    const added = selectedGames.filter(g => !originalGames.includes(g));
+    const removed = originalGames.filter(g => !selectedGames.includes(g));
+    return { added, removed };
+  };
 
   const toggleGame = (id: string) => {
     setSelectedGames(prev =>
@@ -53,11 +158,7 @@ export default function BookGamesPage() {
   const handleSubmit = async () => {
     setError('');
 
-    // Validation
-    if (selectedGames.length === 0) {
-      setError('Please select at least 1 game');
-      return;
-    }
+    if (selectedGames.length === 0) { setError('Please select at least 1 game'); return; }
     if (!date) { setError('Please select date'); return; }
     if (!time) { setError('Please select time slot'); return; }
     if (!name.trim()) { setError('Please enter your name'); return; }
@@ -66,6 +167,7 @@ export default function BookGamesPage() {
     setLoading(true);
     try {
       const selectedGameDetails = GAMES.filter(g => selectedGames.includes(g.id));
+      const changes = hasChanges() ? getChanges() : null;
 
       const response = await fetch('/api/submit-booking', {
         method: 'POST',
@@ -78,7 +180,15 @@ export default function BookGamesPage() {
           name: name.trim(),
           phone: phone.trim(),
           perPersonPrice,
-          total: grandTotal
+          total: grandTotal,
+          offerApplied: applyOffer,
+          offerName: applyOffer && todayOffer ? todayOffer.name : null,
+          savings,
+          changes: changes ? {
+            added: changes.added.map(id => GAMES.find(g => g.id === id)?.name).filter(Boolean),
+            removed: changes.removed.map(id => GAMES.find(g => g.id === id)?.name).filter(Boolean)
+          } : null,
+          originalGames: originalGames.length > 0 ? originalGames.map(id => GAMES.find(g => g.id === id)?.name).filter(Boolean) : null
         })
       });
 
@@ -104,21 +214,27 @@ export default function BookGamesPage() {
           <div className="text-7xl mb-4">🎉</div>
           <h1 className="text-3xl font-bold text-green-600 mb-3">Booking Confirmed!</h1>
           <p className="text-gray-600 mb-6">
-            WhatsApp pe confirmation bhej di hai!<br />
+            Confirmation WhatsApp pe bhej di hai!<br />
             <span className="font-semibold">Booking ID: #{success.bookingId}</span>
           </p>
 
-          <div className="bg-purple-50 rounded-xl p-4 mb-6 text-left">
-            <p className="font-semibold mb-2">🎮 Your Booking:</p>
-            <p className="text-sm text-gray-700">📅 {date} • ⏰ {time}</p>
-            <p className="text-sm text-gray-700">👥 {players} players • 💰 ₹{grandTotal}</p>
+          <div className="bg-purple-50 rounded-xl p-4 mb-4 text-left space-y-1">
+            <p className="text-sm"><b>📅 Date:</b> {date}</p>
+            <p className="text-sm"><b>⏰ Time:</b> {time}</p>
+            <p className="text-sm"><b>👥 Players:</b> {players}</p>
+            <p className="text-sm"><b>💰 Total:</b> ₹{grandTotal}</p>
+            {applyOffer && (
+              <p className="text-xs text-orange-700 bg-orange-100 p-2 rounded mt-2">
+                ✨ Offer Applied: {todayOffer?.name} (Saved ₹{savings})
+              </p>
+            )}
           </div>
 
           <p className="text-4xl mb-2">🐼</p>
           <p className="text-sm text-gray-500">See you at Neon Panda!</p>
 
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => window.location.href = '/book-games'}
             className="mt-6 text-purple-600 underline text-sm"
           >
             Book Another
@@ -133,13 +249,24 @@ export default function BookGamesPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 py-8 px-4">
       <div className="max-w-2xl mx-auto">
 
-        {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-5xl font-bold text-white mb-2">🐼 Neon Panda</h1>
           <p className="text-white/90 text-lg">Book Your Gaming Slot</p>
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow-2xl space-y-6">
+
+          {/* Pre-selected notice */}
+          {originalGames.length > 0 && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 text-sm">
+              <p className="font-medium text-blue-800">
+                💬 {originalGames.length} games pre-selected from chat
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                You can modify your selection anytime before submitting
+              </p>
+            </div>
+          )}
 
           {/* Games Selection */}
           <div>
@@ -153,8 +280,8 @@ export default function BookGamesPage() {
                   key={game.id}
                   onClick={() => toggleGame(game.id)}
                   className={`p-3 rounded-xl border-2 text-left transition-all ${selectedGames.includes(game.id)
-                    ? 'border-purple-600 bg-purple-50 shadow-md'
-                    : 'border-gray-200 hover:border-purple-300'
+                      ? 'border-purple-600 bg-purple-50 shadow-md'
+                      : 'border-gray-200 hover:border-purple-300'
                     }`}
                 >
                   <div className="font-medium text-sm">{game.emoji} {game.name}</div>
@@ -162,7 +289,65 @@ export default function BookGamesPage() {
                 </button>
               ))}
             </div>
+
+            {/* Changes indicator */}
+            {hasChanges() && (
+              <div className="mt-3 bg-yellow-50 border-2 border-yellow-300 rounded-xl p-3 text-sm">
+                <p className="font-medium text-yellow-800">✏️ You modified the selection:</p>
+                {getChanges().added.length > 0 && (
+                  <p className="text-green-700 text-xs mt-1">
+                    + Added: {getChanges().added.map(id => GAMES.find(g => g.id === id)?.name).join(', ')}
+                  </p>
+                )}
+                {getChanges().removed.length > 0 && (
+                  <p className="text-red-700 text-xs mt-1">
+                    - Removed: {getChanges().removed.map(id => GAMES.find(g => g.id === id)?.name).join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Today's Offer */}
+          {todayOffer && selectedGames.length > 0 && (
+            <div className={`rounded-xl p-4 border-2 transition-all ${applyOffer
+                ? 'bg-gradient-to-r from-orange-100 to-yellow-100 border-orange-400 shadow-md'
+                : 'bg-gray-50 border-gray-200'
+              }`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <div className="font-bold text-orange-900 text-lg">
+                    {todayOffer.emoji} Today's Special: {todayOffer.name}
+                  </div>
+                  <div className="text-sm text-orange-800 mt-1">
+                    {todayOffer.description}
+                  </div>
+                  <div className="text-xl font-bold text-orange-900 mt-2">
+                    ₹{todayOffer.price}/person
+                    {regularPrice > todayOffer.price && (
+                      <span className="text-sm font-normal text-gray-500 line-through ml-2">
+                        ₹{regularPrice}
+                      </span>
+                    )}
+                  </div>
+                  {applyOffer && regularPrice > todayOffer.price && (
+                    <div className="text-xs text-green-700 font-bold mt-1">
+                      💰 You save ₹{(regularPrice - todayOffer.price) * players} total!
+                    </div>
+                  )}
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg shadow">
+                  <input
+                    type="checkbox"
+                    checked={applyOffer}
+                    onChange={(e) => setApplyOffer(e.target.checked)}
+                    className="w-5 h-5 accent-orange-600"
+                  />
+                  <span className="font-bold text-orange-800 text-sm">Apply</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Date */}
           <div>
@@ -185,8 +370,8 @@ export default function BookGamesPage() {
                   key={slot}
                   onClick={() => setTime(slot)}
                   className={`p-2 rounded-lg border-2 text-xs font-medium transition ${time === slot
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-purple-300'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-200 hover:border-purple-300'
                     }`}
                 >
                   {slot}
@@ -254,17 +439,20 @@ export default function BookGamesPage() {
                 <span className="font-bold">Total ({players} players):</span>
                 <span className="text-2xl font-bold">₹{grandTotal}</span>
               </div>
+              {applyOffer && savings > 0 && (
+                <div className="text-xs text-green-200 mt-2 text-center">
+                  ✨ Offer saved you ₹{savings}!
+                </div>
+              )}
             </div>
           )}
 
-          {/* Error */}
           {error && (
             <div className="bg-red-50 border-2 border-red-200 text-red-700 p-3 rounded-xl text-sm">
               ⚠️ {error}
             </div>
           )}
 
-          {/* Submit */}
           <button
             onClick={handleSubmit}
             disabled={loading}
@@ -279,5 +467,13 @@ export default function BookGamesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BookGamesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-purple-600 flex items-center justify-center text-white text-xl">Loading...</div>}>
+      <BookingForm />
+    </Suspense>
   );
 }

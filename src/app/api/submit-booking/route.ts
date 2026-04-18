@@ -5,9 +5,11 @@ import { sendWhatsAppMessage } from '@/lib/whatsappSender';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { games, date, time, players, name, phone, perPersonPrice, total } = body;
+    const {
+      games, date, time, players, name, phone,
+      perPersonPrice, total, offerApplied, offerName, savings, changes
+    } = body;
 
-    // Validation
     if (!games?.length || !date || !time || !name || !phone || !players) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
@@ -15,7 +17,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Format phone (add 91 prefix if not present)
     const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
 
     // Save to database
@@ -30,7 +31,8 @@ export async function POST(req: NextRequest) {
         players: players,
         per_person_price: perPersonPrice,
         total_amount: total,
-        status: 'confirmed'
+        status: 'confirmed',
+        notes: offerApplied ? `Offer Applied: ${offerName} (Saved ₹${savings})` : null
       })
       .select()
       .single();
@@ -48,8 +50,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!config?.auth_token || !config?.origin) {
-      console.error('WhatsApp config missing');
-      // Still return success since booking is saved
       return NextResponse.json({
         success: true,
         bookingId: booking.id,
@@ -57,12 +57,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Build game list
     const gameList = games
       .map((g: any, i: number) => `${i + 1}. ${g.emoji} ${g.name} - ₹${g.price}`)
       .join('\n');
 
-    // Format date nicely
     const bookingDate = new Date(date).toLocaleDateString('en-IN', {
       weekday: 'long',
       day: 'numeric',
@@ -70,14 +68,31 @@ export async function POST(req: NextRequest) {
       year: 'numeric'
     });
 
-    // Build WhatsApp message
+    // Build changes section if modified
+    let changesSection = '';
+    if (changes && (changes.added?.length > 0 || changes.removed?.length > 0)) {
+      changesSection = '\n\n✏️ Modifications from chat:\n';
+      if (changes.added?.length > 0) {
+        changesSection += `➕ Added: ${changes.added.join(', ')}\n`;
+      }
+      if (changes.removed?.length > 0) {
+        changesSection += `➖ Removed: ${changes.removed.join(', ')}`;
+      }
+    }
+
+    // Build offer section
+    let offerSection = '';
+    if (offerApplied && offerName) {
+      offerSection = `\n\n🎉 Special Offer Applied:\n${offerName}\n💰 You saved: ₹${savings}`;
+    }
+
     const confirmationMsg = `🎉 Booking Confirmed! 🐼
 
 👤 Name: ${name}
 📱 Contact: ${phone}
 
 🎮 Games:
-${gameList}
+${gameList}${changesSection}${offerSection}
 
 📅 Date: ${bookingDate}
 ⏰ Time: ${time}
@@ -92,9 +107,8 @@ ${gameList}
 See you soon! 🔥
 
 Booking ID: #${booking.id}
-For any changes, call: +91 99931 27979`;
+For changes: +91 99931 27979`;
 
-    // Send WhatsApp confirmation
     try {
       await sendWhatsAppMessage(
         formattedPhone,
@@ -104,7 +118,6 @@ For any changes, call: +91 99931 27979`;
       );
     } catch (whatsappError) {
       console.error('WhatsApp send failed:', whatsappError);
-      // Don't fail the booking, just log
     }
 
     return NextResponse.json({
