@@ -22,7 +22,7 @@ export type AutoResponseResult = {
 async function detectLanguage(text: string): Promise<string> {
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       temperature: 0,
       messages: [
         { role: "system", content: "Detect the language. Reply ONLY with: English, Hindi, or Hinglish." },
@@ -148,14 +148,12 @@ ${system_prompt || ""}
 
 TODAY: ${currentDay} | Offer: ${todaysOffer}
 
-If user claims wrong day, politely correct: "Arre nahi 😄 Aaj toh ${currentDay} hai!"
-
 CONTEXT (if relevant):
 ${contextText || ""}
 `;
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "llama-3.1-8b-instant",
       temperature: 0.1,
       max_tokens: 500,
       messages: [
