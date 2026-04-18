@@ -19,34 +19,26 @@ export type AutoResponseResult = {
   sent?: boolean;
 };
 
-/* ---------------- LANGUAGE DETECTION ---------------- */
 async function detectLanguage(text: string): Promise<string> {
   try {
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       temperature: 0,
       messages: [
-        {
-          role: "system",
-          content:
-            "Detect the language. Reply ONLY with language name like English, Hindi, Gujarati.",
-        },
+        { role: "system", content: "Detect the language. Reply ONLY with: English, Hindi, or Hinglish." },
         { role: "user", content: text },
       ],
     });
-
     return completion.choices[0]?.message?.content?.toLowerCase() || "english";
   } catch {
     return "english";
   }
 }
 
-/* ---------------- FORMAT RESPONSE ---------------- */
 function formatWhatsAppResponse(text: string): string {
   return text.replace(/\n{3,}/g, "\n\n").trim().slice(0, 4000);
 }
 
-/* ---------------- MAIN AUTO RESPONDER ---------------- */
 export async function generateAutoResponse(
   fromNumber: string,
   toNumber: string,
@@ -55,75 +47,50 @@ export async function generateAutoResponse(
   mediaUrl?: string
 ): Promise<AutoResponseResult> {
   try {
-    /* 1️⃣ NUMBER VALIDATION & FILE MAPPING */
     if (toNumber !== '15558459146') {
-      console.log(`🚫 Auto-responder disabled for number: ${toNumber}`);
       return { success: false, error: "Auto-responder only active for 15558459146" };
     }
     const fileIds = await getFilesForPhoneNumber(toNumber);
-
     if (fileIds.length === 0) {
-      return {
-        success: false,
-        noDocuments: true,
-        error: "No data configured",
-      };
+      return { success: false, noDocuments: true, error: "No data configured" };
     }
 
-    /* 2️⃣ PHONE CONFIG */
     const { data: phoneMappings } = await supabase
       .from("phone_document_mapping")
       .select("system_prompt, auth_token, origin")
       .eq("phone_number", toNumber)
       .limit(1);
 
-    if (!phoneMappings?.length) {
-      return { success: false, error: "Phone configuration missing" };
-    }
-
+    if (!phoneMappings?.length) return { success: false, error: "Phone configuration missing" };
     const { system_prompt, auth_token, origin } = phoneMappings[0];
+    if (!auth_token || !origin) return { success: false, error: "WhatsApp credentials missing" };
 
-    if (!auth_token || !origin) {
-      return { success: false, error: "WhatsApp credentials missing" };
-    }
-
-    /* 3️⃣ INPUT NORMALIZATION */
     let userText = messageText?.trim() || "";
     let language = "english";
-    // Check if it's a voice request (either directly from mediaUrl or already transcribed)
     const isVoiceRequest = !!mediaUrl;
 
     if (!userText && mediaUrl) {
       const transcript = await speechToText(mediaUrl);
-      if (!transcript?.text) {
-        return { success: false, error: "Voice transcription failed" };
-      }
+      if (!transcript?.text) return { success: false, error: "Voice transcription failed" };
       userText = transcript.text.trim();
       language = transcript.language || (await detectLanguage(userText));
     }
 
-    if (userText) {
-      // Always detect language if not already set
-      if (language === "english" || language === "unknown") {
-        language = await detectLanguage(userText);
-      }
+    if (userText && (language === "english" || language === "unknown")) {
+      language = await detectLanguage(userText);
     }
 
-    if (!userText) {
-      return { success: false, error: "Empty message" };
-    }
+    if (!userText) return { success: false, error: "Empty message" };
 
-    /* 4️⃣ CHAT HISTORY & GREETING */
+    // FIXED: Proper bidirectional history query
     const { data: historyRows } = await supabase
       .from("whatsapp_messages")
-      .select("content_text, event_type")
-      .or(`from_number.eq.${fromNumber},to_number.eq.${fromNumber}`)
+      .select("content_text, event_type, received_at")
+      .or(`and(from_number.eq.${fromNumber},to_number.eq.${toNumber}),and(from_number.eq.${toNumber},to_number.eq.${fromNumber})`)
       .order("received_at", { ascending: true })
-      .limit(18); // Increased for better memory in booking flow
+      .limit(10); // REDUCED from 18 to 10
 
-    const history: { role: "user" | "assistant"; content: string }[] = (
-      historyRows || []
-    )
+    const history: { role: "user" | "assistant"; content: string }[] = (historyRows || [])
       .filter((m) => m.content_text)
       .map((m) => ({
         role: m.event_type === "MoMessage" ? "user" : "assistant",
@@ -131,184 +98,80 @@ export async function generateAutoResponse(
       }));
 
     const normalizedText = userText.toLowerCase().trim();
-    const isGreeting = /^(hi|hello|hey|hiii|namaste|hola|helo|hlo|start|start bot)$/i.test(normalizedText);
+    const isGreeting = /^(hi|hello|hey|hiii|namaste|hola|helo|hlo|start)$/i.test(normalizedText);
 
-    if (isGreeting) {
-      const currentDay = new Intl.DateTimeFormat('en-US', {
-        weekday: 'long',
-        timeZone: 'Asia/Kolkata'
-      }).format(new Date());
-
-      const dayOfferMap: Record<string, string> = {
-        'Monday': 'Panda Kickstart: Arcade + Indoor Games @ ₹199 🎮',
-        'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🕶',
-        'Wednesday': 'Midweek Madness: Bowling @ ₹249/person 🎳',
-        'Thursday': 'Throwdown Thursday: Multiplayer Games @ ₹199 🎮',
-        'Friday': 'Panda Face-Off: Live Game Night @ ₹199 🔥',
-        'Saturday': 'Super Saturday: Combo & Group Pricing 🎉',
-        'Sunday': 'Family Pack (4 ppl) ₹999 | Friends (6 ppl) ₹1,499 | Celebration (8 ppl) ₹1,999'
-      };
-
-      const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
-      const greetingMsg = `Hey! Welcome to Neon Panda 🐼\nAaj ${currentDay} hai, aur aaj ka special: ${todaysOffer}\nGames explore karna hai ya Food menu dekhna hai? 😊`;
-
-      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
-      return { success: true };
-    }
-
-    /* 5️⃣ RAG */
-    const embedding = await embedText(userText);
-    if (!embedding) {
-      return { success: false, error: "Embedding failed" };
-    }
-
-    const matches = await retrieveRelevantChunksFromFiles(
-      embedding,
-      fileIds,
-      3
-    );
-
-    const contextText = matches
-      .map((m) => m.chunk.slice(0, 400))
-      .join("\n\n");
-
-    /* 6️⃣ SYSTEM PROMPT & DAY LOGIC */
     const currentDay = new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       timeZone: 'Asia/Kolkata'
     }).format(new Date());
 
     const dayOfferMap: Record<string, string> = {
-      'Monday': 'Panda Kickstart: Arcade + Indoor Games @ ₹199 🎮',
-      'Tuesday': 'Turbo Tuesday: VR Experience @ ₹249 🕶',
-      'Wednesday': 'Midweek Madness: Bowling @ ₹249/person 🎳',
-      'Thursday': 'Throwdown Thursday: Multiplayer Games @ ₹199 🎮',
-      'Friday': 'Panda Face-Off: Live Game Night @ ₹199 🔥',
+      'Monday': 'Panda Kickstart: Arcade @ ₹199 🎮',
+      'Tuesday': 'Turbo Tuesday: VR @ ₹249 🕶',
+      'Wednesday': 'Midweek Madness: Bowling @ ₹249 🎳',
+      'Thursday': 'Throwdown Thursday: Multi @ ₹199 🎮',
+      'Friday': 'Panda Face-Off: Live Night @ ₹199 🔥',
       'Saturday': 'Super Saturday: Combo & Group Pricing 🎉',
-      'Sunday': 'Family Pack (4 ppl) ₹999 | Friends (6 ppl) ₹1,499 | Celebration (8 ppl) ₹1,999'
+      'Sunday': 'Family ₹999 | Friends ₹1499 | Celebration ₹1999'
     };
-    const todaysOffer = dayOfferMap[currentDay] || "Panda Specials available!";
+    const todaysOffer = dayOfferMap[currentDay] || "Panda Specials!";
 
-    // Enhanced Selection Tracker: Capture User choices AND Assistant's previous confirmation
-    const lastAssistantBill = history
-      .filter(h => h.role === 'assistant' &&
-        (h.content.toLowerCase().includes('selected items') ||
-          h.content.toLowerCase().includes('total:') ||
-          h.content.includes('₹') && h.content.toLowerCase().includes('total')))
-      .slice(-1)
-      .map(h => h.content)
-      .join(' ');
+    if (isGreeting) {
+      const greetingMsg = `Hey! Welcome to Neon Panda 🐼\nAaj ${currentDay} hai, aur aaj ka special: ${todaysOffer}\nGames explore karna hai ya Food menu dekhna hai? 😊`;
+      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
 
-    const recentUserMessages = history
-      .filter(h => h.role === 'user')
-      .slice(-8)
-      .map(h => h.content)
-      .join(' | ');
+      await supabase.from("whatsapp_messages").insert([{
+        message_id: `auto_${messageId}_${Date.now()}`,
+        channel: "whatsapp",
+        from_number: toNumber,
+        to_number: fromNumber,
+        received_at: new Date().toISOString(),
+        content_text: greetingMsg,
+        sender_name: "AI Assistant",
+        event_type: "MtMessage",
+        is_in_24_window: true,
+      }]);
 
-    const selectionReminder = `
-🔒 STATE LOCK (READ THIS BEFORE REPLYING):
-FULL USER HISTORY: ${recentUserMessages}
-LAST BILL GIVEN BY BOT: ${lastAssistantBill}
+      return { success: true };
+    }
 
-⚠️ CRITICAL FLOW LOGIC:
+    const embedding = await embedText(userText);
+    if (!embedding) return { success: false, error: "Embedding failed" };
 
-STEP DETECTION (check user's messages carefully):
-- If user sent items (games/food) BEFORE → Items are LOCKED IN
-- If user said "book karo/confirm/ok" → They agree, move forward
-- If user shared players count → Save it
-- If user shared time → Save it
-- If user shared name+number → Finalize booking
+    const matches = await retrieveRelevantChunksFromFiles(embedding, fileIds, 3);
+    const contextText = matches.map((m) => m.chunk.slice(0, 400)).join("\n\n");
 
-🚨 WHEN USER SHARES TIME (like "6pm", "7 evening"):
-→ They are IN BOOKING FLOW (already past step 1)
-→ DO NOT ask "kya karne ke liye?"
-→ DO NOT reset to menu
-→ ACTION: Now ask for Name + Contact Number
-→ USE items from LAST BILL GIVEN BY BOT
-
-🚨 WHEN USER SHARES NAME + NUMBER:
-→ This is FINAL STEP
-→ Generate booking summary with ALL items from LAST BILL
-→ Use ---SPLIT--- for 2 bubbles
-→ Include: Name, Contact, Games, Players, Time, Total
-
-⚠️ NEVER reset the conversation or ask what user is confirming mid-flow.
-⚠️ ALWAYS carry forward items from LAST BILL to final booking.
-`;
-
+    // SIMPLIFIED system prompt - NO complex state injection
     const systemPrompt = `
-You are "Panda Bot" 🐼 — friendly WhatsApp assistant for Neon Panda (Indore).
+You are Panda Bot 🐼 for Neon Panda, Indore.
 
 ${system_prompt || ""}
 
-🔒 DAY LOCK (ABSOLUTE HIGHEST PRIORITY):
-ACTUAL TODAY: ${currentDay}
-TODAY'S OFFER: ${todaysOffer}
+TODAY: ${currentDay} | Offer: ${todaysOffer}
 
-⚠️ CRITICAL DAY RULES:
-- Today is ${currentDay}. This is FINAL. Set by system.
-- If user says ANY other day → ALWAYS correct them politely.
+If user claims wrong day, politely correct: "Arre nahi 😄 Aaj toh ${currentDay} hai!"
 
-STYLE:
-- Hinglish (Hindi + English). Short replies (max 25 words).
-- Friendly tone, no long paragraphs.
-
-Weekly Offers Reference:
-Mon-Arcade(199), Tue-VR(249), Wed-Bowling(249), Thu-Multi(199), Fri-Live(199), Sat-Combo/Group, Sun-Family(999+).
-
-GAMES:
-TRAMPOLINE | BOWLING | KIDS PLAY | LASER TAG | SHOOTING | ARCADE | VR | HYPER GRID | PANDA CLIMB | CRICKET | ROPE COURSE | SKY RIDER | GRAVITY GLIDE.
-
-BOOKING FLOW (6 STEPS):
-1. Give Price + Ask "Book karu?"
-2. If ha/ok -> Ask Players + Time IMMEDIATELY.
-3. Confirm slot.
-4. Ask Name + Number.
-5. Final summary (---SPLIT--- for bubbles).
-6. End with excitement.
-
-CONTINUATION WORDS:
-"ok", "ha", "hmm", "yes", "done", "thik hai" -> MOVE TO NEXT STEP. Never repeat questions.
-
-MEMORY:
-- Read full chat history before replying.
-- NO REVERTING: Never drop user-selected games just because they are booking for 'today'. 
-- NO DATA LOSS: If user confirmed a combo, carry it forward to step 4, 5 and 6.
-
-RULES:
-- NO stars (*) or headings (#). 
-- Food: SHARE PDF LINK ONLY. https://drive.google.com/file/d/1aYTS0y8R6duSAurdJ6qiH_jv7KF3kuS4/preview
-- BANNED: kheti, avsar, vivaan, samagri. No "specific cheez" filler.
-- Use ---SPLIT--- for clean bubbles.
-
-CONTEXT:
+CONTEXT (if relevant):
 ${contextText || ""}
-
-${selectionReminder}
 `;
 
-    /* 7️⃣ LLM */
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       temperature: 0.1,
-      max_tokens: 600,
+      max_tokens: 500,
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-16),
+        ...history.slice(-8), // REDUCED from 16 to 8
         { role: "user", content: userText },
       ],
     });
 
     let response = completion.choices[0]?.message?.content;
-    if (!response) {
-      return { success: false, error: "Empty AI response" };
-    }
+    if (!response) return { success: false, error: "Empty AI response" };
 
-    // FINAL FORMATTING FILTER (STRICT NO STARS)
     response = response.replace(/\*/g, "");
     response = formatWhatsAppResponse(response);
 
-    /* 8️⃣ SEND RESPONSE (Text or Audio) */
     const responseBubbles = response.split("---SPLIT---").map(b => b.trim()).filter(Boolean);
     let lastSendResult: { success: boolean; error?: string } = { success: false, error: "No messages sent" };
     let finalResponseUrl = "";
@@ -318,89 +181,53 @@ ${selectionReminder}
 
       if (isVoiceRequest) {
         try {
-          // Convert to Speech
           const audioBuffer = await textToSpeech(bubble, language);
-
-          // Upload to Supabase Storage
           const fileName = `v_${Date.now()}_${i}.mp3`;
           const { error: uploadError } = await supabase.storage
             .from("voice_replies")
-            .upload(fileName, audioBuffer, {
-              contentType: "audio/mpeg",
-              upsert: true,
-            });
+            .upload(fileName, audioBuffer, { contentType: "audio/mpeg", upsert: true });
 
           if (uploadError) throw uploadError;
 
-          // Get Public URL
           const { data: { publicUrl } } = supabase.storage
-            .from("voice_replies")
-            .getPublicUrl(fileName);
-
+            .from("voice_replies").getPublicUrl(fileName);
           finalResponseUrl = publicUrl;
 
-          // Send Audio
-          const send = await sendWhatsAppAudio(
-            fromNumber,
-            finalResponseUrl,
-            auth_token!,
-            origin!
-          );
+          const send = await sendWhatsAppAudio(fromNumber, finalResponseUrl, auth_token!, origin!);
           lastSendResult = send;
-        } catch (audioErr) {
-          console.error("Audio processing failed, falling back to text:", audioErr);
-          const send = await sendWhatsAppMessage(
-            fromNumber,
-            bubble,
-            auth_token!,
-            origin!
-          );
+        } catch {
+          const send = await sendWhatsAppMessage(fromNumber, bubble, auth_token!, origin!);
           lastSendResult = send;
         }
       } else {
-        // Normal Text Message
-        const send = await sendWhatsAppMessage(
-          fromNumber,
-          bubble,
-          auth_token!,
-          origin!
-        );
+        const send = await sendWhatsAppMessage(fromNumber, bubble, auth_token!, origin!);
         lastSendResult = send;
       }
 
-      // Small delay between bubbles to preserve order
       if (responseBubbles.length > 1 && i < responseBubbles.length - 1) {
         await new Promise(r => setTimeout(r, 500));
       }
     }
 
-    if (!lastSendResult.success) {
-      return { success: false, error: lastSendResult.error };
-    }
+    if (!lastSendResult.success) return { success: false, error: lastSendResult.error };
 
-    /* 9️⃣ SAVE RESPONSE */
-    await supabase.from("whatsapp_messages").insert([
-      {
-        message_id: `auto_${messageId}_${Date.now()}`,
-        channel: "whatsapp",
-        from_number: toNumber,
-        to_number: fromNumber,
-        received_at: new Date().toISOString(),
-        content_type: isVoiceRequest && finalResponseUrl ? "audio" : "text",
-        content_text: response,
-        raw_payload: { audio_url: finalResponseUrl }, // Optional tracking
-        sender_name: "AI Assistant",
-        event_type: "MtMessage",
-        is_in_24_window: true,
-      },
-    ]);
+    await supabase.from("whatsapp_messages").insert([{
+      message_id: `auto_${messageId}_${Date.now()}`,
+      channel: "whatsapp",
+      from_number: toNumber,
+      to_number: fromNumber,
+      received_at: new Date().toISOString(),
+      content_type: isVoiceRequest && finalResponseUrl ? "audio" : "text",
+      content_text: response,
+      raw_payload: { audio_url: finalResponseUrl },
+      sender_name: "AI Assistant",
+      event_type: "MtMessage",
+      is_in_24_window: true,
+    }]);
 
     return { success: true, response, sent: true };
   } catch (err) {
     console.error("AUTO RESPONDER ERROR:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Unknown error",
-    };
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
