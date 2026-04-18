@@ -118,7 +118,20 @@ export async function generateAutoResponse(
 
     if (isGreeting) {
       const greetingMsg = `Hey! Welcome to Neon Panda 🐼\nAaj ${currentDay} hai, aur aaj ka special: ${todaysOffer}\nGames explore karna hai ya Food menu dekhna hai? 😊`;
-      await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
+      const sendResult = await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
+      
+      if (sendResult.success) {
+        await supabase.from("whatsapp_messages").insert([{
+          message_id: `greet_${Date.now()}`,
+          channel: "whatsapp",
+          from_number: toNumber,
+          to_number: fromNumber,
+          received_at: new Date().toISOString(),
+          content_type: "text",
+          content_text: greetingMsg,
+          event_type: "MtMessage"
+        }]);
+      }
       return { success: true };
     }
 
@@ -181,13 +194,53 @@ ${contextText || ""}
 
           const send = await sendWhatsAppAudio(fromNumber, finalResponseUrl, auth_token!, origin!);
           lastSendResult = send;
+          
+          if (send.success) {
+            await supabase.from("whatsapp_messages").insert([{
+              message_id: `audio_${Date.now()}_${i}`,
+              channel: "whatsapp",
+              from_number: toNumber,
+              to_number: fromNumber,
+              received_at: new Date().toISOString(),
+              content_type: "audio",
+              content_text: bubble, // Save text for memory tracing
+              event_type: "MtMessage",
+              raw_payload: { audio_url: finalResponseUrl }
+            }]);
+          }
         } catch {
           const send = await sendWhatsAppMessage(fromNumber, bubble, auth_token!, origin!);
           lastSendResult = send;
+          
+          if (send.success) {
+            await supabase.from("whatsapp_messages").insert([{
+              message_id: `msg_${Date.now()}_${i}`,
+              channel: "whatsapp",
+              from_number: toNumber,
+              to_number: fromNumber,
+              received_at: new Date().toISOString(),
+              content_type: "text",
+              content_text: bubble,
+              event_type: "MtMessage"
+            }]);
+          }
         }
       } else {
         const send = await sendWhatsAppMessage(fromNumber, bubble, auth_token!, origin!);
         lastSendResult = send;
+        
+        if (send.success) {
+          await supabase.from("whatsapp_messages").insert([{
+            message_id: `msg_${Date.now()}_${i}`,
+            channel: "whatsapp",
+            from_number: toNumber,
+            to_number: fromNumber,
+            received_at: new Date().toISOString(),
+            content_type: "text",
+            content_text: bubble,
+            event_type: "MtMessage"
+          }]);
+        }
       }
 
       if (responseBubbles.length > 1 && i < responseBubbles.length - 1) {
@@ -197,7 +250,6 @@ ${contextText || ""}
 
     if (!lastSendResult.success) return { success: false, error: lastSendResult.error };
 
-    // NO DUPLICATE SAVE - Webhook auto-saves bot replies as MtMessage
     return { success: true, response, sent: true };
   } catch (err) {
     console.error("AUTO RESPONDER ERROR:", err);
