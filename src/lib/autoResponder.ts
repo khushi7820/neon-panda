@@ -88,7 +88,7 @@ export async function generateAutoResponse(
       .select("content_text, event_type, received_at")
       .or(`and(from_number.eq.${fromNumber},to_number.eq.${toNumber}),and(from_number.eq.${toNumber},to_number.eq.${fromNumber})`)
       .order("received_at", { ascending: true })
-      .limit(10); // REDUCED from 18 to 10
+      .limit(10);
 
     const history: { role: "user" | "assistant"; content: string }[] = (historyRows || [])
       .filter((m) => m.content_text)
@@ -119,19 +119,6 @@ export async function generateAutoResponse(
     if (isGreeting) {
       const greetingMsg = `Hey! Welcome to Neon Panda 🐼\nAaj ${currentDay} hai, aur aaj ka special: ${todaysOffer}\nGames explore karna hai ya Food menu dekhna hai? 😊`;
       await sendWhatsAppMessage(fromNumber, greetingMsg, auth_token!, origin!);
-
-      await supabase.from("whatsapp_messages").insert([{
-        message_id: `auto_${messageId}_${Date.now()}`,
-        channel: "whatsapp",
-        from_number: toNumber,
-        to_number: fromNumber,
-        received_at: new Date().toISOString(),
-        content_text: greetingMsg,
-        sender_name: "AI Assistant",
-        event_type: "MtMessage",
-        is_in_24_window: true,
-      }]);
-
       return { success: true };
     }
 
@@ -141,7 +128,6 @@ export async function generateAutoResponse(
     const matches = await retrieveRelevantChunksFromFiles(embedding, fileIds, 3);
     const contextText = matches.map((m) => m.chunk.slice(0, 400)).join("\n\n");
 
-    // SIMPLIFIED system prompt - NO complex state injection
     const systemPrompt = `
 You are Panda Bot 🐼 for Neon Panda, Indore.
 
@@ -161,7 +147,7 @@ ${contextText || ""}
       max_tokens: 500,
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-8), // REDUCED from 16 to 8
+        ...history.slice(-8),
         { role: "user", content: userText },
       ],
     });
@@ -211,20 +197,7 @@ ${contextText || ""}
 
     if (!lastSendResult.success) return { success: false, error: lastSendResult.error };
 
-    await supabase.from("whatsapp_messages").insert([{
-      message_id: `auto_${messageId}_${Date.now()}`,
-      channel: "whatsapp",
-      from_number: toNumber,
-      to_number: fromNumber,
-      received_at: new Date().toISOString(),
-      content_type: isVoiceRequest && finalResponseUrl ? "audio" : "text",
-      content_text: response,
-      raw_payload: { audio_url: finalResponseUrl },
-      sender_name: "AI Assistant",
-      event_type: "MtMessage",
-      is_in_24_window: true,
-    }]);
-
+    // NO DUPLICATE SAVE - Webhook auto-saves bot replies as MtMessage
     return { success: true, response, sent: true };
   } catch (err) {
     console.error("AUTO RESPONDER ERROR:", err);
