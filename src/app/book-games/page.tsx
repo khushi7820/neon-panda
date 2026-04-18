@@ -132,9 +132,20 @@ function BookingForm() {
     return sum + (game?.price || 0);
   }, 0);
 
-  const perPersonPrice = applyOffer && todayOffer ? todayOffer.price : regularPrice;
+  let perPersonPrice = regularPrice;
+  if (applyOffer && todayOffer) {
+    const extraGamesPrice = selectedGames
+      .filter(id => !todayOffer.includedGames.includes(id))
+      .reduce((sum, id) => {
+        const game = GAMES.find(g => g.id === id);
+        return sum + (game?.price || 0);
+      }, 0);
+    perPersonPrice = todayOffer.price + extraGamesPrice;
+  }
+
   const grandTotal = perPersonPrice * players;
-  const savings = applyOffer && todayOffer ? (regularPrice - todayOffer.price) * players : 0;
+  // Calculate total savings by comparing what they would have paid (regularPrice) vs what they are paying (perPersonPrice)
+  const savings = applyOffer && todayOffer ? (regularPrice - perPersonPrice) * players : 0;
 
   // Detect changes from original selection
   const hasChanges = () => {
@@ -153,6 +164,17 @@ function BookingForm() {
     setSelectedGames(prev =>
       prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
     );
+  };
+
+  const handleApplyOffer = (checked: boolean) => {
+    setApplyOffer(checked);
+    if (checked && todayOffer && todayOffer.includedGames) {
+      // Auto-select all games included in the offer
+      setSelectedGames(prev => {
+        const newSet = new Set([...prev, ...todayOffer.includedGames]);
+        return Array.from(newSet);
+      });
+    }
   };
 
   const handleSubmit = async () => {
@@ -330,9 +352,9 @@ function BookingForm() {
                       </span>
                     )}
                   </div>
-                  {applyOffer && regularPrice > todayOffer.price && (
+                  {applyOffer && savings > 0 && (
                     <div className="text-xs text-green-700 font-bold mt-1">
-                      💰 You save ₹{(regularPrice - todayOffer.price) * players} total!
+                      💰 You save ₹{savings} total!
                     </div>
                   )}
                 </div>
@@ -340,7 +362,7 @@ function BookingForm() {
                   <input
                     type="checkbox"
                     checked={applyOffer}
-                    onChange={(e) => setApplyOffer(e.target.checked)}
+                    onChange={(e) => handleApplyOffer(e.target.checked)}
                     className="w-5 h-5 accent-orange-600"
                   />
                   <span className="font-bold text-orange-800 text-sm">Apply</span>
