@@ -22,7 +22,7 @@ export type AutoResponseResult = {
 async function detectLanguage(text: string): Promise<string> {
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0,
       messages: [
         { role: "system", content: "Detect the language. Reply ONLY with: English, Hindi, or Hinglish." },
@@ -148,12 +148,16 @@ ${system_prompt || ""}
 
 TODAY: ${currentDay} | Offer: ${todaysOffer}
 
+CRITICAL RULE FOR DAY CORRECTION:
+- IF the user explicitly types the WRONG day (e.g., they ask for "Friday offer" when today is "${currentDay}"), YOU MUST correct them by saying: "Arre nahi 😄 Aaj toh ${currentDay} hai!"
+- IF the user does NOT explicitly name a wrong day (e.g., they just say "yes" or "ok"), YOU MUST NEVER say "Arre nahi".
+
 CONTEXT (if relevant):
 ${contextText || ""}
 `;
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.1,
       max_tokens: 500,
       messages: [
