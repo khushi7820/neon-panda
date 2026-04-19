@@ -100,6 +100,112 @@ export async function generateAutoResponse(
     const normalizedText = userText.toLowerCase().trim();
     const isGreeting = /^(hi|hello|hey|hiii|namaste|hola|helo|hlo|start)$/i.test(normalizedText);
 
+    // ═══════════════════════════════════════
+    // HARDCODED BOOKING LINK INTERCEPT
+    // ═══════════════════════════════════════
+    const confirmWords = /^(yes|yes book|ok|okk|okay|okayy|confirm|book|book karo|ha|haa|haan|done|thik hai|go|fine|kar do|karo|bhej|bhej do|bhejo|book my selected items|book my items)$/i;
+    
+    if (confirmWords.test(normalizedText)) {
+      // Get last 5 messages to find context
+      const recentMessages = history.slice(-5);
+      const lastBotMessage = [...recentMessages].reverse().find(m => m.role === 'assistant');
+      
+      if (lastBotMessage) {
+        const lastMsg = lastBotMessage.content;
+        
+        // CASE 1: Games selection confirmation → Send booking link
+        if (lastMsg.includes('Aapke selected items 🎮') && lastMsg.includes('Total: ₹')) {
+          // Extract game names from last message
+          const gameIdMap: Record<string, string> = {
+            'trampoline': 'trampoline',
+            'bowling': 'bowling',
+            'kids play': 'kids_play',
+            'laser tag': 'laser_tag',
+            'shooting': 'shooting',
+            'arcade': 'arcade',
+            'vr': 'vr',
+            'hyper grid': 'hyper_grid',
+            'panda climb': 'panda_climb',
+            'cricket': 'cricket',
+            'rope course': 'rope_course',
+            'sky rider': 'sky_rider',
+            'gravity glide': 'gravity_glide'
+          };
+          
+          const gameIds: string[] = [];
+          const lowerMsg = lastMsg.toLowerCase();
+          
+          for (const [name, id] of Object.entries(gameIdMap)) {
+            if (lowerMsg.includes(name)) {
+              gameIds.push(id);
+            }
+          }
+          
+          const gamesParam = gameIds.length > 0 ? gameIds.join(',') : '';
+          const bookingMsg = `Perfect! 🎉 Booking process ho rahi hai...\n\n👉 https://neon-panda.vercel.app/book-games?games=${gamesParam}\n\nAapke games pre-selected hain. Date, time, players, name fill karo. Form mein today's offer toggle bhi hai! Instant WhatsApp confirmation! ⚡`;
+          
+          const sendResult = await sendWhatsAppMessage(fromNumber, bookingMsg, auth_token!, origin!);
+          
+          if (sendResult.success) {
+            await supabase.from("whatsapp_messages").insert([{
+              message_id: `booking_${Date.now()}`,
+              channel: "whatsapp",
+              from_number: toNumber,
+              to_number: fromNumber,
+              received_at: new Date().toISOString(),
+              content_type: "text",
+              content_text: bookingMsg,
+              event_type: "MtMessage"
+            }]);
+          }
+          return { success: true };
+        }
+        
+        // CASE 2: Booking confirmed → Welcome reply
+        if (lastMsg.includes('Booking ID:') || lastMsg.includes('Booking Confirmed') || lastMsg.includes('See you soon!')) {
+          const welcomeMsg = `Welcome! 🐼 See you soon at Neon Panda! 🔥 Enjoy karo!`;
+          const sendResult = await sendWhatsAppMessage(fromNumber, welcomeMsg, auth_token!, origin!);
+          
+          if (sendResult.success) {
+            await supabase.from("whatsapp_messages").insert([{
+              message_id: `welcome_${Date.now()}`,
+              channel: "whatsapp",
+              from_number: toNumber,
+              to_number: fromNumber,
+              received_at: new Date().toISOString(),
+              content_type: "text",
+              content_text: welcomeMsg,
+              event_type: "MtMessage"
+            }]);
+          }
+          return { success: true };
+        }
+        
+        // CASE 3: Food items selected → Order confirmation
+        if (lastMsg.includes('Aapke selected items 🍽️') && lastMsg.includes('+91 99931 27979')) {
+          const foodMsg = `Great! 🎉 Order karne ke liye abhi call karein:\n📞 +91 99931 27979\n\nStaff aapka order confirm karke total bata dega! 🐼`;
+          const sendResult = await sendWhatsAppMessage(fromNumber, foodMsg, auth_token!, origin!);
+          
+          if (sendResult.success) {
+            await supabase.from("whatsapp_messages").insert([{
+              message_id: `food_${Date.now()}`,
+              channel: "whatsapp",
+              from_number: toNumber,
+              to_number: fromNumber,
+              received_at: new Date().toISOString(),
+              content_type: "text",
+              content_text: foodMsg,
+              event_type: "MtMessage"
+            }]);
+          }
+          return { success: true };
+        }
+      }
+    }
+    // ═══════════════════════════════════════
+    // END HARDCODED INTERCEPTS
+    // ═══════════════════════════════════════
+
     const currentDay = new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       timeZone: 'Asia/Kolkata'
